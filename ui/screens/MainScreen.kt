@@ -22,6 +22,7 @@ fun MainScreen(
     moviesViewModel: MoviesViewModel,
     authViewModel: AuthViewModel,
     onLogout: () -> Unit,
+    onMovieClick: (Int) -> Unit,          // <-- Añadido parámetro para click película
     modifier: Modifier = Modifier
 ) {
     var selectedItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Home) }
@@ -52,25 +53,28 @@ fun MainScreen(
                     moviesViewModel = moviesViewModel,
                     authViewModel = authViewModel,
                     onLogout = onLogout,
+                    onMovieClick = onMovieClick,         // <-- Pasar lambda aquí
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is BottomNavItem.Top -> {
                 TopScreen(
                     moviesViewModel = moviesViewModel,
-                    authViewModel = authViewModel,
-                    onLogout = onLogout,
+                    onMovieClick = onMovieClick,         // <-- Pasar lambda aquí
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is BottomNavItem.Search -> {
                 SearchScreen(
                     moviesViewModel = moviesViewModel,
+                    onMovieClick = onMovieClick,         // <-- Pasar lambda aquí
                     modifier = Modifier.padding(innerPadding)
                 )
             }
             is BottomNavItem.Favs -> {
-                FavsScreen(modifier = Modifier.padding(innerPadding))
+                FavsScreen(
+                    modifier = Modifier.padding(innerPadding)
+                )
             }
         }
     }

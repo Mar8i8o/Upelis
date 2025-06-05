@@ -20,6 +20,7 @@ fun MoviesScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     onLogout: () -> Unit,
+    onMovieClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val statusMessage by moviesViewModel.statusMessage.collectAsState()

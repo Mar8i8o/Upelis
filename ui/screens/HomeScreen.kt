@@ -1,5 +1,6 @@
 package com.example.upelis_mariomarin.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,7 @@ fun HomeScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     onLogout: () -> Unit = {},
+    onMovieClick: (Int) -> Unit,   // Recibe el id de la película
     modifier: Modifier = Modifier
 ) {
     val statusMessage by moviesViewModel.statusMessage.collectAsState()
@@ -61,17 +63,27 @@ fun HomeScreen(
             }
 
             items(movies) { movie ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    AsyncImage(
-                        model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
-                        contentDescription = movie.title,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = movie.title)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onMovieClick(movie.id) },  // Aquí pasamos solo el id
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        AsyncImage(
+                            model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
+                            contentDescription = movie.title,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = movie.title ?: "Título desconocido")
+                    }
                 }
             }
         }

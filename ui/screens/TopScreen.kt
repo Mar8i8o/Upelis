@@ -1,5 +1,6 @@
 package com.example.upelis_mariomarin.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,7 @@ fun TopScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     onLogout: () -> Unit = {},
+    onMovieClick: (Int) -> Unit,  // <-- Añadido parámetro
     modifier: Modifier = Modifier
 ) {
     val statusMessage by moviesViewModel.statusMessage.collectAsState()
@@ -61,7 +63,12 @@ fun TopScreen(
             }
 
             items(movies) { movie ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clickable { onMovieClick(movie.id) }  // <-- Aquí se llama al click con id
+                        .padding(8.dp)
+                ) {
                     AsyncImage(
                         model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
                         contentDescription = movie.title,
@@ -71,7 +78,7 @@ fun TopScreen(
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = movie.title)
+                    Text(text = movie.title ?: "Título desconocido")
                 }
             }
         }
