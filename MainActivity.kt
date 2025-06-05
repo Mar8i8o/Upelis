@@ -11,8 +11,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.example.upelis_mariomarin.ui.screens.LoginScreen
+import com.example.upelis_mariomarin.ui.screens.MainScreen
 import com.example.upelis_mariomarin.ui.screens.RegisterScreen
-import com.example.upelis_mariomarin.ui.screens.MoviesScreen
 import com.example.upelis_mariomarin.ui.theme.UPelis_MarioMarinTheme
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
@@ -50,18 +50,17 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         else -> {
-                            MoviesScreen(
+                            MainScreen(
                                 moviesViewModel = moviesViewModel,
                                 authViewModel = authViewModel,
                                 modifier = Modifier.padding(innerPadding),
                                 onLogout = {
-                                    // Navegar a login: resetea estados
                                     isLoggedIn = false
                                     showRegister = false
                                 }
                             )
-
                         }
+
 
                     }
                 }
