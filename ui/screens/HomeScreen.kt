@@ -16,17 +16,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun MoviesScreen(
+fun HomeScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
-    onLogout: () -> Unit,
+    onLogout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val statusMessage by moviesViewModel.statusMessage.collectAsState()
     val movies by moviesViewModel.movies.collectAsState(initial = emptyList())
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
 
-    // Si el usuario no está autenticado, ejecutamos onLogout para navegar al login
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) {
             onLogout()
