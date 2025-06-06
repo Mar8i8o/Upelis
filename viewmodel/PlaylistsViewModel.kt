@@ -39,4 +39,68 @@ class PlaylistsViewModel : ViewModel() {
             override fun onCancelled(error: DatabaseError) {}
         })
     }
+
+    // --- NUEVAS FUNCIONES ---
+
+    fun createPlaylist(
+        name: String,
+        movieId: Int,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (userId == null) {
+            onError("Usuario no autenticado")
+            return
+        }
+        val db = database.child("users").child(userId).child("playlists")
+        val newKey = db.push().key
+        if (newKey == null) {
+            onError("Error al generar clave")
+            return
+        }
+
+        val newPlaylist = Playlist(
+            id = newKey,
+            name = name,
+            movieIds = listOf(movieId)
+        )
+
+        db.child(newKey).setValue(newPlaylist)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onError("Error al guardar: ${it.message}") }
+    }
+
+    fun addMovieToPlaylist(
+        playlistId: String,
+        movieId: Int,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (userId == null) {
+            onError("Usuario no autenticado")
+            return
+        }
+        val db = database.child("users").child(userId).child("playlists")
+        val playlistRef = db.child(playlistId)
+
+        playlistRef.get().addOnSuccessListener { snapshot ->
+            val playlist = snapshot.getValue(Playlist::class.java)
+            if (playlist != null) {
+                val currentIds = playlist.movieIds.toMutableList()
+                if (!currentIds.contains(movieId)) {
+                    currentIds.add(movieId)
+                    playlistRef.child("movieIds").setValue(currentIds)
+                        .addOnSuccessListener { onSuccess() }
+                        .addOnFailureListener { onError("Error al actualizar: ${it.message}") }
+                } else {
+                    onError("La película ya está en esa playlist")
+                }
+            } else {
+                onError("Playlist no encontrada")
+            }
+        }.addOnFailureListener {
+            onError("Error al leer la playlist: ${it.message}")
+        }
+    }
 }
+

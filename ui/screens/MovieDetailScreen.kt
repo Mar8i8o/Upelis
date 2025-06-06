@@ -3,6 +3,8 @@ package com.example.upelis_mariomarin.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -25,13 +27,19 @@ import com.google.firebase.database.FirebaseDatabase
 fun MovieDetailScreen(
     movieDetails: MovieDetails,
     onBack: () -> Unit,
-    playlistsViewModel: PlaylistsViewModel = viewModel()
+    playlistsViewModel: PlaylistsViewModel = viewModel(),
+    modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     Scaffold(
+        modifier = Modifier.offset(y = (-40).dp),
         topBar = {
             TopAppBar(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets(0)) // elimina padding del sistema
+                    .offset(y = (-0).dp), // ajusta este valor para subir un poco más
                 title = { Text(movieDetails.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -40,15 +48,18 @@ fun MovieDetailScreen(
                             contentDescription = "Volver"
                         )
                     }
-                }
+                },
+                windowInsets = WindowInsets(0) // elimina padding automático del TopAppBar
             )
-        }
-    ) { padding ->
+        },
+        contentWindowInsets = WindowInsets(0) // elimina padding que añade Scaffold al contenido
+    ) { paddingValues ->
+
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize()
+                .padding(paddingValues) // normalmente estará vacío porque contentWindowInsets=0
+                .padding(horizontal = 16.dp, vertical = 0.dp)
+                .verticalScroll(scrollState)
         ) {
             val posterUrl = "https://image.tmdb.org/t/p/w500${movieDetails.posterPath}"
             Image(
@@ -95,14 +106,14 @@ fun MovieDetailScreen(
                 Text("Añadir a playlist")
             }
         }
+    }
 
-        if (showDialog) {
-            AddToPlaylistDialog(
-                movieId = movieDetails.id,
-                onDismiss = { showDialog = false },
-                playlistsViewModel = playlistsViewModel
-            )
-        }
+    if (showDialog) {
+        AddToPlaylistDialog(
+            movieId = movieDetails.id,
+            onDismiss = { showDialog = false },
+            playlistsViewModel = playlistsViewModel
+        )
     }
 }
 
@@ -114,8 +125,11 @@ fun AddToPlaylistDialog(
 ) {
     val playlists by playlistsViewModel.playlists.collectAsState()
     var newPlaylistName by remember { mutableStateOf("") }
-    var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    // Estado para las playlists seleccionadas, inicializado con las que ya contienen la película
+    val initiallySelected = playlists.filter { it.movieIds.contains(movieId) }.map { it.id }.toSet()
+    var selectedPlaylists by remember { mutableStateOf(initiallySelected) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -125,7 +139,7 @@ fun AddToPlaylistDialog(
                 if (playlists.isEmpty()) {
                     Text("No tienes playlists creadas. Crea una nueva:")
                 } else {
-                    Text("Selecciona una playlist existente:")
+                    Text("Selecciona las playlists donde quieres añadir/quitar esta película:")
                     Spacer(modifier = Modifier.height(8.dp))
 
                     playlists.forEach { playlist ->
@@ -133,12 +147,24 @@ fun AddToPlaylistDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
-                                .clickable { selectedPlaylistId = playlist.id },
-                            verticalAlignment = Alignment.CenterVertically // Aquí está el ajuste
+                                .clickable {
+                                    selectedPlaylists = if (selectedPlaylists.contains(playlist.id)) {
+                                        selectedPlaylists - playlist.id
+                                    } else {
+                                        selectedPlaylists + playlist.id
+                                    }
+                                },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(
-                                selected = (playlist.id == selectedPlaylistId),
-                                onClick = { selectedPlaylistId = playlist.id }
+                            Checkbox(
+                                checked = selectedPlaylists.contains(playlist.id),
+                                onCheckedChange = { checked ->
+                                    selectedPlaylists = if (checked) {
+                                        selectedPlaylists + playlist.id
+                                    } else {
+                                        selectedPlaylists - playlist.id
+                                    }
+                                }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(playlist.name)
@@ -159,18 +185,17 @@ fun AddToPlaylistDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (newPlaylistName.isBlank() && selectedPlaylistId == null) {
+                if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
                     errorMsg = "Debes seleccionar o crear una playlist"
                     return@TextButton
                 }
 
                 errorMsg = null
                 val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@TextButton
-
                 val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
 
                 if (newPlaylistName.isNotBlank()) {
-                    // Crear nueva playlist
+                    // Crear nueva playlist con la película dentro
                     val newKey = db.push().key ?: return@TextButton
                     val newPlaylist = Playlist(
                         id = newKey,
@@ -180,27 +205,32 @@ fun AddToPlaylistDialog(
                     db.child(newKey).setValue(newPlaylist)
                         .addOnSuccessListener { onDismiss() }
                         .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
-
-                } else if (selectedPlaylistId != null) {
-                    // Añadir a playlist existente
-                    val playlistRef = db.child(selectedPlaylistId!!)
-                    playlistRef.get().addOnSuccessListener { snapshot ->
-                        val playlist = snapshot.getValue(Playlist::class.java)
-                        if (playlist != null) {
-                            val currentIds = playlist.movieIds.toMutableList()
-                            if (!currentIds.contains(movieId)) {
-                                currentIds.add(movieId)
-                                playlistRef.child("movieIds").setValue(currentIds)
-                                    .addOnSuccessListener { onDismiss() }
-                                    .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                            } else {
-                                errorMsg = "La película ya está en esa playlist"
-                            }
-                        } else {
-                            errorMsg = "Playlist no encontrada"
-                        }
-                    }.addOnFailureListener { errorMsg = "Error al leer la playlist: ${it.message}" }
                 }
+
+                // Actualizar playlists existentes: añadir o quitar la película según selección
+                playlists.forEach { playlist ->
+                    val playlistRef = db.child(playlist.id)
+                    val containsMovie = playlist.movieIds.contains(movieId)
+                    val shouldContainMovie = selectedPlaylists.contains(playlist.id)
+
+                    if (shouldContainMovie && !containsMovie) {
+                        // Añadir película
+                        val updatedMovieIds = playlist.movieIds.toMutableList()
+                        updatedMovieIds.add(movieId)
+                        playlistRef.child("movieIds").setValue(updatedMovieIds)
+                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                    } else if (!shouldContainMovie && containsMovie) {
+                        // Quitar película
+                        val updatedMovieIds = playlist.movieIds.toMutableList()
+                        updatedMovieIds.remove(movieId)
+                        playlistRef.child("movieIds").setValue(updatedMovieIds)
+                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                    }
+                }
+
+                // Si todo OK, cerrar diálogo
+                onDismiss()
+
             }) {
                 Text("Guardar")
             }
