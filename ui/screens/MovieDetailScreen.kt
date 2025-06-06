@@ -42,7 +42,7 @@ fun MovieDetailScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                modifier = Modifier.offset(y = (-70).dp)
+                modifier = Modifier.offset(y = (-50).dp)
                 // ❗ NO padding ni offset
             )
         },
@@ -55,7 +55,7 @@ fun MovieDetailScreen(
         Column(
             modifier = Modifier
                 .padding(
-                    top = 0.dp,
+                    top = 80.dp,
                     bottom = innerPadding.calculateBottomPadding(),
                     start = 16.dp,
                     end = 16.dp

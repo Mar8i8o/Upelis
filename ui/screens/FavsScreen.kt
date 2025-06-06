@@ -59,7 +59,7 @@ fun FavsScreen(
                     val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
 
                     items(playlistMovies) { movie ->
-                        Card(
+                        Column(
                             modifier = Modifier
                                 .size(100.dp)
                                 .clickable {

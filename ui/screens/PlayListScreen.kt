@@ -38,7 +38,8 @@ fun PlayListScreen(
             TopAppBar(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets(0))
-                    .offset(y = (-20).dp),
+                    .offset(y = (-5).dp)
+                    .padding(vertical = 10.dp),
                 title = { Text(text = playlist?.name ?: "Playlist") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
