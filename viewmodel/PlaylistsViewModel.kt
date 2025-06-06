@@ -42,6 +42,13 @@ class PlaylistsViewModel : ViewModel() {
 
     // --- NUEVAS FUNCIONES ---
 
+    fun deletePlaylist(playlistId: String) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
+        db.child(playlistId).removeValue()
+    }
+
+
     fun createPlaylist(
         name: String,
         movieId: Int,

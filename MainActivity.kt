@@ -103,7 +103,6 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    // Actualiza FavScreen para que reciba navController y playlistsViewModel
                                     composable("favs") {
                                         FavsScreen(
                                             navController = navController,
@@ -142,7 +141,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    // Nueva ruta para PlayListScreen
+                                    // ✅ Corregido: pasar onMovieClick también aquí
                                     composable(
                                         "playlist/{playlistId}",
                                         arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
@@ -152,6 +151,9 @@ class MainActivity : ComponentActivity() {
                                         PlayListScreen(
                                             playlistId = playlistId,
                                             onBack = { navController.popBackStack() },
+                                            onMovieClick = { movieId ->
+                                                navController.navigate("movie_detail/$movieId")
+                                            },
                                             playlistsViewModel = playlistsViewModel,
                                             moviesViewModel = moviesViewModel
                                         )
