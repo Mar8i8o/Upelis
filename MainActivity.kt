@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -20,11 +21,13 @@ import com.example.upelis_mariomarin.ui.screens.*
 import com.example.upelis_mariomarin.ui.theme.UPelis_MarioMarinTheme
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val moviesViewModel by viewModels<MoviesViewModel>()
     private val authViewModel by viewModels<AuthViewModel>()
+    private val playlistsViewModel by viewModels<PlaylistsViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,8 +103,13 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
+                                    // Actualiza FavScreen para que reciba navController y playlistsViewModel
                                     composable("favs") {
-                                        FavsScreen()
+                                        FavsScreen(
+                                            navController = navController,
+                                            playlistsViewModel = playlistsViewModel,
+                                            moviesViewModel = moviesViewModel
+                                        )
                                     }
 
                                     composable(
@@ -110,7 +118,6 @@ class MainActivity : ComponentActivity() {
                                     ) { backStackEntry ->
                                         val movieId = backStackEntry.arguments?.getInt("movieId") ?: 0
 
-                                        // Llamamos a fetchMovieDetails cuando se entra a esta pantalla
                                         LaunchedEffect(movieId) {
                                             moviesViewModel.fetchMovieDetails(movieId)
                                         }
@@ -121,7 +128,7 @@ class MainActivity : ComponentActivity() {
                                             MovieDetailScreen(
                                                 movieDetails = movieDetails!!,
                                                 onBack = {
-                                                    moviesViewModel.clearMovieDetails() // Limpia para la próxima vez
+                                                    moviesViewModel.clearMovieDetails()
                                                     navController.popBackStack()
                                                 }
                                             )
@@ -133,6 +140,21 @@ class MainActivity : ComponentActivity() {
                                                 Text("Cargando detalles...")
                                             }
                                         }
+                                    }
+
+                                    // Nueva ruta para PlayListScreen
+                                    composable(
+                                        "playlist/{playlistId}",
+                                        arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
+                                    ) { backStackEntry ->
+                                        val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
+
+                                        PlayListScreen(
+                                            playlistId = playlistId,
+                                            onBack = { navController.popBackStack() },
+                                            playlistsViewModel = playlistsViewModel,
+                                            moviesViewModel = moviesViewModel
+                                        )
                                     }
                                 }
                             }
