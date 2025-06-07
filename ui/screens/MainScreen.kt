@@ -72,8 +72,14 @@ fun MainScreen(
                 SearchScreen(
                     moviesViewModel = moviesViewModel,
                     onMovieClick = onMovieClick,
+                    onGenreClick = { genreId, genreName ->
+                        // Navegar o hacer lo que necesites con el género seleccionado
+                        // Por ejemplo, si tienes navController aquí, puedes navegar:
+                        navController.navigate("movies_by_genre/$genreId/$genreName")
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
+
             }
             is BottomNavItem.Favs -> {
                 FavsScreen(

@@ -93,9 +93,13 @@ class MainActivity : ComponentActivity() {
                                             authViewModel = authViewModel,
                                             onMovieClick = { movieId ->
                                                 navController.navigate("movie_detail/$movieId")
+                                            },
+                                            onGenreClick = { genreId, genreName ->
+                                                navController.navigate("movies_by_genre/$genreId/$genreName")
                                             }
                                         )
                                     }
+
 
                                     composable("top") {
                                         TopScreen(
