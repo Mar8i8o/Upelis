@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -18,26 +19,34 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
+import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
+    playlistsViewModel: PlaylistsViewModel = viewModel(),
     onLogout: () -> Unit = {},
     onMovieClick: (Int) -> Unit,
-    onGenreClick: (Int, String) -> Unit, // lo añadí para poder usar el onGenreClick igual que en HomeScreen
+    onGenreClick: (Int, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
     val genres by moviesViewModel.genres.collectAsState(initial = emptyList())
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState(initial = emptyMap())
+    val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
 
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
+
+    val favoriteMovieIds = remember(playlists) {
+        playlists.flatMap { it.movieIds }.toSet()
+    }
 
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) onLogout()
@@ -48,11 +57,8 @@ fun SearchScreen(
             .padding(16.dp)
             .fillMaxSize()
     ) {
-        // Aquí quité el botón cerrar sesión para que no se vea, pero si quieres lo pones igual que HomeScreen
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Barra de búsqueda
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -109,11 +115,26 @@ fun SearchScreen(
                                                 contentScale = ContentScale.Crop
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text(
-                                                text = movie.title ?: "",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                maxLines = 2
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = movie.title ?: "",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    maxLines = 2,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                if (favoriteMovieIds.contains(movie.id)) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Star,
+                                                        contentDescription = "Favorita",
+                                                        tint = Color.Yellow,
+                                                        modifier = Modifier
+                                                            .size(18.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -123,7 +144,6 @@ fun SearchScreen(
                 }
             }
         } else {
-            // Mostrar resultado de búsqueda en grid 4x por fila
             val allMovies = genreMoviesMap.values.flatten()
             val filteredMovies = remember(searchQuery.text, allMovies) {
                 allMovies.filter { movie ->
@@ -146,22 +166,33 @@ fun SearchScreen(
                         AsyncImage(
                             model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
                             contentDescription = movie.title,
-                            modifier = Modifier
-                                .aspectRatio(2 / 3f),
+                            modifier = Modifier.aspectRatio(2 / 3f),
                             contentScale = ContentScale.Crop
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = movie.title ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = movie.title ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Start
+                            )
+                            if (favoriteMovieIds.contains(movie.id)) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = "Favorita",
+                                    tint = Color.Yellow,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-

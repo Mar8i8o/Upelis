@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,8 +13,10 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
+import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -20,18 +24,25 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun TopScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
+    playlistsViewModel: PlaylistsViewModel = viewModel(),
     onLogout: () -> Unit = {},
-    onMovieClick: (Int) -> Unit,  // <-- Añadido parámetro
+    onMovieClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val statusMessage by moviesViewModel.statusMessage.collectAsState()
     val movies by moviesViewModel.movies.collectAsState(initial = emptyList())
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
+    val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
 
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) {
             onLogout()
         }
+    }
+
+    // IDs favoritos para mostrar estrella amarilla
+    val favoriteMovieIds = remember(playlists) {
+        playlists.flatMap { it.movieIds }.toSet()
     }
 
     Column(
@@ -66,7 +77,7 @@ fun TopScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clickable { onMovieClick(movie.id) }  // <-- Aquí se llama al click con id
+                        .clickable { onMovieClick(movie.id) }
                         .padding(8.dp)
                 ) {
                     AsyncImage(
@@ -78,7 +89,23 @@ fun TopScreen(
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = movie.title ?: "Título desconocido")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = movie.title ?: "Título desconocido",
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (favoriteMovieIds.contains(movie.id)) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = "Favorita",
+                                tint = Color.Yellow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
