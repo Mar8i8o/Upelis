@@ -23,6 +23,9 @@ class MoviesViewModel : ViewModel() {
     private val _selectedMovieDetails = MutableStateFlow<MovieDetails?>(null)
     val selectedMovieDetails: StateFlow<MovieDetails?> = _selectedMovieDetails
 
+    private val _movieDetailsMap = MutableStateFlow<Map<Int, MovieDetails>>(emptyMap())
+    val movieDetailsMap: StateFlow<Map<Int, MovieDetails>> = _movieDetailsMap
+
     private val _genres = MutableStateFlow<List<Genre>>(emptyList())
     val genres: StateFlow<List<Genre>> = _genres
 
@@ -56,9 +59,35 @@ class MoviesViewModel : ViewModel() {
             try {
                 val details = TmdbApiClient.api.getMovieDetails(movieId, apiKey)
                 _selectedMovieDetails.value = details
+
+                _movieDetailsMap.value = _movieDetailsMap.value.toMutableMap().apply {
+                    put(movieId, details)
+                }
             } catch (e: Exception) {
                 _selectedMovieDetails.value = null
                 e.printStackTrace()
+            }
+        }
+    }
+
+    fun fetchMultipleMovieDetails(movieIds: List<Int>) {
+        viewModelScope.launch {
+            val deferredList = movieIds.map { movieId ->
+                async {
+                    try {
+                        val details = TmdbApiClient.api.getMovieDetails(movieId, apiKey)
+                        movieId to details
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
+                }
+            }
+
+            val results = deferredList.awaitAll().filterNotNull().toMap()
+
+            _movieDetailsMap.value = _movieDetailsMap.value.toMutableMap().apply {
+                putAll(results)
             }
         }
     }
@@ -95,7 +124,6 @@ class MoviesViewModel : ViewModel() {
         }
     }
 
-    // Función para cargar películas de un género bajo demanda
     fun loadMoviesByGenre(genreId: Int) {
         viewModelScope.launch {
             try {
@@ -108,5 +136,46 @@ class MoviesViewModel : ViewModel() {
             }
         }
     }
-}
 
+    /**
+     * Devuelve los nombres de géneros correspondientes a los ids recibidos.
+     * Útil para mostrar géneros legibles en la UI.
+     */
+    fun getGenreNamesByIds(genreIds: List<Int>?): List<String> {
+        if (genreIds == null) return emptyList()
+        val currentGenres = _genres.value
+        return currentGenres.filter { it.id in genreIds }.map { it.name }
+    }
+
+    /**
+     * Función que carga la película si no está ya en la lista actual.
+     */
+    fun loadMovieIfMissing(movieId: Int) {
+        // Si ya está cargada, no hacemos nada
+        if (_movies.value.any { it.id == movieId }) return
+
+        viewModelScope.launch {
+            try {
+                val details = TmdbApiClient.api.getMovieDetails(movieId, apiKey)
+
+                val movie = Movie(
+                    id = details.id,
+                    title = details.title ?: "Título desconocido",
+                    overview = details.overview ?: "",
+                    posterPath = details.posterPath,  // puede ser null
+                    releaseDate = details.releaseDate ?: ""
+                )
+
+                _movies.value = _movies.value + movie
+
+                _movieDetailsMap.value = _movieDetailsMap.value.toMutableMap().apply {
+                    put(movieId, details)
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+}

@@ -4,9 +4,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -30,13 +34,27 @@ fun FavsScreen(
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = modifier.padding(16.dp)) {
-        // Botón para crear nueva playlist
-        Button(onClick = {
-            showCreateDialog = true
-            errorMsg = null
-            newPlaylistName = ""
-        }, modifier = Modifier.padding(bottom = 16.dp)) {
-            Text("Crear nueva playlist")
+        // Botón centrado para crear nueva playlist
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(
+                onClick = {
+                    showCreateDialog = true
+                    errorMsg = null
+                    newPlaylistName = ""
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFEB3B), // Amarillo
+                    contentColor = Color.Black
+                ),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Añadir")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Añadir Playlist")
+            }
         }
 
         if (playlists.isEmpty()) {
@@ -45,6 +63,7 @@ fun FavsScreen(
             playlists.forEach { playlist ->
                 Text(
                     text = playlist.name,
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .padding(vertical = 8.dp)
                         .clickable {
@@ -117,7 +136,7 @@ fun FavsScreen(
                         }
                         playlistsViewModel.createPlaylist(
                             name = newPlaylistName.trim(),
-                            movieId = -1, // Sin película añadida al crear la playlist
+                            movieId = -1,
                             onSuccess = {
                                 showCreateDialog = false
                                 newPlaylistName = ""

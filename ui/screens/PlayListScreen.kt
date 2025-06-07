@@ -29,13 +29,26 @@ fun PlayListScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
-    val playlists = playlistsViewModel.playlists.collectAsState().value
-    val allMovies = moviesViewModel.movies.collectAsState().value
+    val playlists by playlistsViewModel.playlists.collectAsState()
+    val allMovies by moviesViewModel.movies.collectAsState()
+    val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
 
     val playlist = playlists.find { it.id == playlistId }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+
+    // Cargar detalles de películas que no estén en allMovies ni en movieDetailsMap
+    LaunchedEffect(playlist) {
+        playlist?.movieIds?.forEach { id ->
+            if (allMovies.none { it.id == id }) {
+                moviesViewModel.loadMovieIfMissing(id)
+            }
+            if (movieDetailsMap[id] == null) {
+                moviesViewModel.fetchMovieDetails(id)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -56,16 +69,10 @@ fun PlayListScreen(
                 actions = {
                     if (playlist != null) {
                         IconButton(onClick = { showEditDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar nombre playlist"
-                            )
+                            Icon(Icons.Default.Edit, contentDescription = "Editar nombre playlist")
                         }
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Eliminar playlist"
-                            )
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar playlist")
                         }
                     }
                 },
@@ -81,13 +88,14 @@ fun PlayListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 0.dp),
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text("Playlist no encontrada")
             }
         } else {
             val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
+
             LazyColumn(
                 contentPadding = PaddingValues(
                     top = paddingValues.calculateTopPadding(),
@@ -99,11 +107,15 @@ fun PlayListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(playlistMovies) { movie ->
-                    Card(
+                    val details = movieDetailsMap[movie.id]
+                    val year = movie.releaseDate?.take(4) ?: "----"
+                    val duration = details?.runtime ?: 0
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onMovieClick(movie.id) },
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        //elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Row(modifier = Modifier.padding(8.dp)) {
                             AsyncImage(
@@ -114,10 +126,26 @@ fun PlayListScreen(
                                     .height(150.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.fillMaxHeight()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(end = 8.dp)
+                            ) {
                                 Text(
                                     text = movie.title ?: "Título desconocido",
                                     style = MaterialTheme.typography.titleMedium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Año: $year • Duración: ${if (duration > 0) "$duration min" else "Desconocida"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = movie.overview?.take(150)?.plus("...") ?: "Sin descripción.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 4
                                 )
                             }
                         }
@@ -147,7 +175,7 @@ fun PlayListScreen(
                             onBack()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50), // verde forzado
+                            containerColor = Color(0xFF4CAF50),
                             contentColor = Color.White
                         ),
                         modifier = Modifier.padding(end = 8.dp)
@@ -157,7 +185,7 @@ fun PlayListScreen(
                     Button(
                         onClick = { showDeleteDialog = false },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336), // rojo forzado
+                            containerColor = Color(0xFFF44336),
                             contentColor = Color.White
                         )
                     ) {
@@ -200,7 +228,7 @@ fun PlayListScreen(
                             showEditDialog = false
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50), // verde forzado
+                            containerColor = Color(0xFF4CAF50),
                             contentColor = Color.White
                         ),
                         modifier = Modifier.padding(end = 8.dp)
@@ -210,7 +238,7 @@ fun PlayListScreen(
                     Button(
                         onClick = { showEditDialog = false },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336), // rojo forzado
+                            containerColor = Color(0xFFF44336),
                             contentColor = Color.White
                         )
                     ) {

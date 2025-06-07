@@ -10,8 +10,13 @@ data class MovieDetails(
     @SerializedName("release_date") val releaseDate: String?,
     val runtime: Int?, // duración en minutos
     val genres: List<Genre>?,
-    @SerializedName("vote_average") val voteAverage: Double?
+    @SerializedName("vote_average") val voteAverage: Double?,
+    @SerializedName("original_title") val originalTitle: String?,
+    @SerializedName("original_language") val originalLanguage: String?,
+    val popularity: Double?,
+    @SerializedName("vote_count") val voteCount: Int?
 )
+
 
 data class Genre(
     val id: Int,
