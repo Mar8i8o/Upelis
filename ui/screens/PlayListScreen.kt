@@ -7,10 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -22,7 +24,7 @@ import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 fun PlayListScreen(
     playlistId: String,
     onBack: () -> Unit,
-    onMovieClick: (Int) -> Unit, // <-- Añadido
+    onMovieClick: (Int) -> Unit,
     playlistsViewModel: PlaylistsViewModel = viewModel(),
     moviesViewModel: MoviesViewModel = viewModel(),
     modifier: Modifier = Modifier
@@ -32,6 +34,8 @@ fun PlayListScreen(
 
     val playlist = playlists.find { it.id == playlistId }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -51,6 +55,12 @@ fun PlayListScreen(
                 },
                 actions = {
                     if (playlist != null) {
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar nombre playlist"
+                            )
+                        }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
@@ -65,6 +75,7 @@ fun PlayListScreen(
         contentWindowInsets = WindowInsets(0),
         modifier = modifier
     ) { paddingValues ->
+
         if (playlist == null) {
             Box(
                 modifier = Modifier
@@ -91,7 +102,7 @@ fun PlayListScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onMovieClick(movie.id) }, // <-- Llama a onMovieClick
+                            .clickable { onMovieClick(movie.id) },
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Row(modifier = Modifier.padding(8.dp)) {
@@ -116,6 +127,7 @@ fun PlayListScreen(
         }
     }
 
+    // Diálogo eliminar playlist
     if (showDeleteDialog && playlist != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -124,19 +136,89 @@ fun PlayListScreen(
                 Text("¿Estás seguro que quieres eliminar la playlist \"${playlist.name}\"? Esta acción no se puede deshacer.")
             },
             confirmButton = {
-                TextButton(onClick = {
-                    playlistsViewModel.deletePlaylist(playlist.id)
-                    showDeleteDialog = false
-                    onBack()
-                }) {
-                    Text("Eliminar")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(
+                        onClick = {
+                            playlistsViewModel.deletePlaylist(playlist.id)
+                            showDeleteDialog = false
+                            onBack()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50), // verde forzado
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Eliminar")
+                    }
+                    Button(
+                        onClick = { showDeleteDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF44336), // rojo forzado
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar")
+            dismissButton = {}
+        )
+    }
+
+    // Diálogo editar nombre playlist
+    if (showEditDialog && playlist != null) {
+        LaunchedEffect(Unit) {
+            newPlaylistName = playlist.name
+        }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Editar nombre de la playlist") },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("Nombre") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank() && newPlaylistName != playlist.name) {
+                                playlistsViewModel.renamePlaylist(playlist.id, newPlaylistName.trim())
+                            }
+                            showEditDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50), // verde forzado
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Aceptar")
+                    }
+                    Button(
+                        onClick = { showEditDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF44336), // rojo forzado
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
                 }
-            }
+            },
+            dismissButton = {}
         )
     }
 }

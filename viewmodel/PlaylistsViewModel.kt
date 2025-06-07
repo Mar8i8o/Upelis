@@ -48,6 +48,32 @@ class PlaylistsViewModel : ViewModel() {
         db.child(playlistId).removeValue()
     }
 
+    fun renamePlaylist(
+        playlistId: String,
+        newName: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        if (userId == null) {
+            onError("Usuario no autenticado")
+            return
+        }
+        val playlistRef = database.child("users").child(userId).child("playlists").child(playlistId)
+        playlistRef.child("name").setValue(newName)
+            .addOnSuccessListener {
+                // Actualiza localmente la lista de playlists para que Compose refresque UI
+                val updatedList = _playlists.value.map { playlist ->
+                    if (playlist.id == playlistId) playlist.copy(name = newName) else playlist
+                }
+                _playlists.value = updatedList
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                onError("Error al renombrar playlist: ${exception.message}")
+            }
+    }
+
+
 
     fun createPlaylist(
         name: String,
