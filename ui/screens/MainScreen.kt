@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
-import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 sealed class BottomNavItem(val title: String, val icon: ImageVector) {

@@ -20,7 +20,7 @@ import com.example.upelis_mariomarin.ui.navigation.BottomNavigationBar
 import com.example.upelis_mariomarin.ui.screens.*
 import com.example.upelis_mariomarin.ui.theme.UPelis_MarioMarinTheme
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
-import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 class MainActivity : ComponentActivity() {
@@ -80,6 +80,9 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onMovieClick = { movieId ->
                                                 navController.navigate("movie_detail/$movieId")
+                                            },
+                                            onGenreClick = { genreId, genreName ->
+                                                navController.navigate("movies_by_genre/$genreId/$genreName")
                                             }
                                         )
                                     }
@@ -141,7 +144,6 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    // ✅ Corregido: pasar onMovieClick también aquí
                                     composable(
                                         "playlist/{playlistId}",
                                         arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
@@ -155,6 +157,28 @@ class MainActivity : ComponentActivity() {
                                                 navController.navigate("movie_detail/$movieId")
                                             },
                                             playlistsViewModel = playlistsViewModel,
+                                            moviesViewModel = moviesViewModel
+                                        )
+                                    }
+
+                                    // Nueva pantalla para mostrar películas filtradas por género
+                                    composable(
+                                        route = "movies_by_genre/{genreId}/{genreName}",
+                                        arguments = listOf(
+                                            navArgument("genreId") { type = NavType.IntType },
+                                            navArgument("genreName") { type = NavType.StringType }
+                                        )
+                                    ) { backStackEntry ->
+                                        val genreId = backStackEntry.arguments?.getInt("genreId") ?: 0
+                                        val genreName = backStackEntry.arguments?.getString("genreName") ?: ""
+
+                                        MoviesByGenreScreen(
+                                            genreId = genreId,
+                                            genreName = genreName,
+                                            onBack = { navController.popBackStack() },
+                                            onMovieClick = { movieId ->
+                                                navController.navigate("movie_detail/$movieId")
+                                            },
                                             moviesViewModel = moviesViewModel
                                         )
                                     }

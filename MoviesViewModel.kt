@@ -1,15 +1,18 @@
-package com.example.upelis_mariomarin.viewmodel
+package com.example.upelis_mariomarin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.upelis_mariomarin.data.api.TmdbApiClient
-import com.example.upelis_mariomarin.data.model.Movie
-import com.example.upelis_mariomarin.data.model.MovieDetails
+import com.example.upelis_mariomarin.data.model.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MoviesViewModel : ViewModel() {
+
+    private val apiKey = "8e3b65e494d34716bbdf077be06f14ca"
 
     private val _movies = MutableStateFlow<List<Movie>>(emptyList())
     val movies: StateFlow<List<Movie>> = _movies
@@ -17,14 +20,18 @@ class MoviesViewModel : ViewModel() {
     private val _statusMessage = MutableStateFlow("Cargando...")
     val statusMessage: StateFlow<String> = _statusMessage
 
-    private val apiKey = "8e3b65e494d34716bbdf077be06f14ca"
-
-    // Estado para detalles
     private val _selectedMovieDetails = MutableStateFlow<MovieDetails?>(null)
     val selectedMovieDetails: StateFlow<MovieDetails?> = _selectedMovieDetails
 
+    private val _genres = MutableStateFlow<List<Genre>>(emptyList())
+    val genres: StateFlow<List<Genre>> = _genres
+
+    private val _genreMoviesMap = MutableStateFlow<Map<Int, List<Movie>>>(emptyMap())
+    val genreMoviesMap: StateFlow<Map<Int, List<Movie>>> = _genreMoviesMap
+
     init {
         fetchNowPlayingMovies()
+        loadGenresAndMovies()
     }
 
     private fun fetchNowPlayingMovies() {
@@ -44,7 +51,6 @@ class MoviesViewModel : ViewModel() {
         }
     }
 
-    // NUEVO: función para cargar detalles
     fun fetchMovieDetails(movieId: Int) {
         viewModelScope.launch {
             try {
@@ -57,13 +63,50 @@ class MoviesViewModel : ViewModel() {
         }
     }
 
-    // Para limpiar detalles cuando se vuelve atrás
     fun clearMovieDetails() {
         _selectedMovieDetails.value = null
     }
 
-    // Puedes seguir teniendo esta función para buscar en lista local (opcional)
-    fun getMovieById(id: Int): Movie? {
-        return _movies.value.find { it.id == id }
+    fun loadGenresAndMovies() {
+        viewModelScope.launch {
+            try {
+                val genreResponse = TmdbApiClient.api.getGenres(apiKey)
+                _genres.value = genreResponse.genres
+
+                val deferredList = genreResponse.genres.map { genre ->
+                    async {
+                        try {
+                            val movieResponse = TmdbApiClient.api.getMoviesByGenre(apiKey, genre.id)
+                            genre.id to movieResponse.results
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            genre.id to emptyList()
+                        }
+                    }
+                }
+
+                val results = deferredList.awaitAll()
+                val genreMovieMap = results.toMap()
+
+                _genreMoviesMap.value = genreMovieMap
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Función para cargar películas de un género bajo demanda
+    fun loadMoviesByGenre(genreId: Int) {
+        viewModelScope.launch {
+            try {
+                val response = TmdbApiClient.api.getMoviesByGenre(apiKey, genreId)
+                val currentMap = _genreMoviesMap.value.toMutableMap()
+                currentMap[genreId] = response.results
+                _genreMoviesMap.value = currentMap
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 }
+

@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
