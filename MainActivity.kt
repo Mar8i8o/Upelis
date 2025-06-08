@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -48,6 +47,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToRegister = { showRegister = true }
                             )
                         }
+
                         !isLoggedIn && showRegister -> {
                             RegisterScreen(
                                 authViewModel = authViewModel,
@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogin = { showRegister = false }
                             )
                         }
+
                         else -> {
                             val navController = rememberNavController()
 
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
                                         HomeScreen(
                                             moviesViewModel = moviesViewModel,
                                             authViewModel = authViewModel,
+                                            playlistsViewModel = playlistsViewModel,
                                             onLogout = {
                                                 isLoggedIn = false
                                                 showRegister = false
@@ -83,6 +85,9 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onGenreClick = { genreId, genreName ->
                                                 navController.navigate("movies_by_genre/$genreId/$genreName")
+                                            },
+                                            onProfileClick = {
+                                                navController.navigate("user_profile")
                                             }
                                         )
                                     }
@@ -99,7 +104,6 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
                                     }
-
 
                                     composable("top") {
                                         TopScreen(
@@ -165,7 +169,6 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    // Nueva pantalla para mostrar películas filtradas por género
                                     composable(
                                         route = "movies_by_genre/{genreId}/{genreName}",
                                         arguments = listOf(
@@ -184,6 +187,14 @@ class MainActivity : ComponentActivity() {
                                                 navController.navigate("movie_detail/$movieId")
                                             },
                                             moviesViewModel = moviesViewModel
+                                        )
+                                    }
+
+                                    // NUEVO: Perfil de usuario
+                                    composable("user_profile") {
+                                        UserScreen(
+                                            authViewModel = authViewModel,
+                                            onBack = { navController.popBackStack() }
                                         )
                                     }
                                 }

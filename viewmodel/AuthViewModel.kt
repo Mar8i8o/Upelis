@@ -1,9 +1,11 @@
 package com.example.upelis_mariomarin.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -12,6 +14,7 @@ class AuthViewModel : ViewModel() {
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
+    private val storage = FirebaseStorage.getInstance().reference
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -25,6 +28,9 @@ class AuthViewModel : ViewModel() {
     private val _username = MutableStateFlow("")
     val username: StateFlow<String> = _username
 
+    private val _profilePhotoUrl = MutableStateFlow<String?>(null)
+    val profilePhotoUrl: StateFlow<String?> = _profilePhotoUrl
+
     val currentUser = firebaseAuth.currentUser
 
     fun login(email: String, password: String) {
@@ -37,6 +43,7 @@ class AuthViewModel : ViewModel() {
                     if (task.isSuccessful) {
                         _isUserAuthenticated.value = true
                         loadUsername()
+                        loadUserProfilePhoto()
                     } else {
                         _errorMessage.value = task.exception?.localizedMessage ?: "Error desconocido"
                         _isUserAuthenticated.value = false
@@ -56,7 +63,8 @@ class AuthViewModel : ViewModel() {
                         if (userId != null) {
                             val userMap = mapOf(
                                 "username" to username,
-                                "email" to email
+                                "email" to email,
+                                "profilePhotoUrl" to "" // <-- campo inicial vacío o default
                             )
                             database.child("users").child(userId).setValue(userMap)
                                 .addOnCompleteListener { dbTask ->
@@ -64,6 +72,7 @@ class AuthViewModel : ViewModel() {
                                     if (dbTask.isSuccessful) {
                                         _isUserAuthenticated.value = true
                                         _username.value = username
+                                        _profilePhotoUrl.value = ""
                                     } else {
                                         _errorMessage.value = dbTask.exception?.localizedMessage ?: "Error al guardar el usuario"
                                         _isUserAuthenticated.value = false
@@ -86,6 +95,7 @@ class AuthViewModel : ViewModel() {
         firebaseAuth.signOut()
         _isUserAuthenticated.value = false
         _username.value = ""
+        _profilePhotoUrl.value = null
     }
 
     fun loadUsername() {
@@ -97,6 +107,54 @@ class AuthViewModel : ViewModel() {
             }
             .addOnFailureListener {
                 _username.value = ""
+            }
+    }
+
+    fun loadUserProfilePhoto() {
+        val userId = firebaseAuth.currentUser?.uid ?: return
+        database.child("users").child(userId).child("profilePhotoUrl")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                _profilePhotoUrl.value = snapshot.getValue(String::class.java)
+            }
+            .addOnFailureListener {
+                _profilePhotoUrl.value = null
+            }
+    }
+
+    // Nueva función para actualizar la foto de perfil
+    fun updateProfilePhoto(uri: Uri) {
+        val userId = firebaseAuth.currentUser?.uid ?: return
+
+        _isLoading.value = true
+        _errorMessage.value = ""
+
+        // Ruta en Storage: photos/{userId}/profile.jpg
+        val photoRef = storage.child("photos/$userId/profile.jpg")
+
+        photoRef.putFile(uri)
+            .addOnSuccessListener {
+                photoRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                    val photoUrl = downloadUri.toString()
+                    // Guardamos URL en Realtime Database
+                    database.child("users").child(userId).child("profilePhotoUrl")
+                        .setValue(photoUrl)
+                        .addOnSuccessListener {
+                            _profilePhotoUrl.value = photoUrl
+                            _isLoading.value = false
+                        }
+                        .addOnFailureListener { e ->
+                            _errorMessage.value = e.localizedMessage ?: "Error al guardar URL de foto"
+                            _isLoading.value = false
+                        }
+                }.addOnFailureListener { e ->
+                    _errorMessage.value = e.localizedMessage ?: "Error al obtener URL de descarga"
+                    _isLoading.value = false
+                }
+            }
+            .addOnFailureListener { e ->
+                _errorMessage.value = e.localizedMessage ?: "Error al subir la foto"
+                _isLoading.value = false
             }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.upelis_mariomarin.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,16 +10,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
-import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 
 @Composable
 fun HomeScreen(
@@ -28,10 +31,12 @@ fun HomeScreen(
     onLogout: () -> Unit = {},
     onMovieClick: (Int) -> Unit,
     onGenreClick: (Int, String) -> Unit,
+    onProfileClick: () -> Unit, // <-- NUEVO parámetro
     modifier: Modifier = Modifier
 ) {
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
     val username by authViewModel.username.collectAsState()
+    val profilePhotoUrl by authViewModel.profilePhotoUrl.collectAsState() // <-- NUEVO
     val genres by moviesViewModel.genres.collectAsState(initial = emptyList())
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState(initial = emptyMap())
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
@@ -43,6 +48,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         moviesViewModel.loadGenresAndMovies()
         authViewModel.loadUsername()
+        authViewModel.loadUserProfilePhoto() // <-- NUEVO
     }
 
     LaunchedEffect(isUserAuthenticated) {
@@ -54,10 +60,39 @@ fun HomeScreen(
             .padding(16.dp)
             .fillMaxSize()
     ) {
-        Text(
-            text = "Hola, $username 👋",
-            style = MaterialTheme.typography.titleLarge
-        )
+        // NUEVA SECCIÓN CON FOTO DE PERFIL O CÍRCULO BLANCO
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Hola, $username 👋",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            if (!profilePhotoUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = profilePhotoUrl,
+                    contentDescription = "Foto de perfil",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable { onProfileClick() },
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .clickable { onProfileClick() }
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(4.dp))
 
