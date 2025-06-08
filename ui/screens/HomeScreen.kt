@@ -59,6 +59,14 @@ fun HomeScreen(
             style = MaterialTheme.typography.titleLarge
         )
 
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "¡Elige tus películas y series favoritas!",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Yellow
+        )
+
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
