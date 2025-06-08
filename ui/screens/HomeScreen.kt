@@ -31,17 +31,18 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
+    val username by authViewModel.username.collectAsState()
     val genres by moviesViewModel.genres.collectAsState(initial = emptyList())
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState(initial = emptyMap())
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
 
-    // Conjunto con todos los IDs de películas en playlists para marcar la estrella
     val favoriteMovieIds = remember(playlists) {
         playlists.flatMap { it.movieIds }.toSet()
     }
 
     LaunchedEffect(Unit) {
         moviesViewModel.loadGenresAndMovies()
+        authViewModel.loadUsername()
     }
 
     LaunchedEffect(isUserAuthenticated) {
@@ -53,6 +54,13 @@ fun HomeScreen(
             .padding(16.dp)
             .fillMaxSize()
     ) {
+        Text(
+            text = "Hola, $username 👋",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Button(
             onClick = { authViewModel.logout() },
             modifier = Modifier.fillMaxWidth()
