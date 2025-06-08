@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
-import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 sealed class BottomNavItem(val title: String, val icon: ImageVector) {
@@ -72,8 +72,14 @@ fun MainScreen(
                 SearchScreen(
                     moviesViewModel = moviesViewModel,
                     onMovieClick = onMovieClick,
+                    onGenreClick = { genreId, genreName ->
+                        // Navegar o hacer lo que necesites con el género seleccionado
+                        // Por ejemplo, si tienes navController aquí, puedes navegar:
+                        navController.navigate("movies_by_genre/$genreId/$genreName")
+                    },
                     modifier = Modifier.padding(innerPadding)
                 )
+
             }
             is BottomNavItem.Favs -> {
                 FavsScreen(

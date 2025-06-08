@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -20,7 +19,7 @@ import com.example.upelis_mariomarin.ui.navigation.BottomNavigationBar
 import com.example.upelis_mariomarin.ui.screens.*
 import com.example.upelis_mariomarin.ui.theme.UPelis_MarioMarinTheme
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
-import com.example.upelis_mariomarin.viewmodel.MoviesViewModel
+import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 class MainActivity : ComponentActivity() {
@@ -48,6 +47,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToRegister = { showRegister = true }
                             )
                         }
+
                         !isLoggedIn && showRegister -> {
                             RegisterScreen(
                                 authViewModel = authViewModel,
@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogin = { showRegister = false }
                             )
                         }
+
                         else -> {
                             val navController = rememberNavController()
 
@@ -74,12 +75,19 @@ class MainActivity : ComponentActivity() {
                                         HomeScreen(
                                             moviesViewModel = moviesViewModel,
                                             authViewModel = authViewModel,
+                                            playlistsViewModel = playlistsViewModel,
                                             onLogout = {
                                                 isLoggedIn = false
                                                 showRegister = false
                                             },
                                             onMovieClick = { movieId ->
                                                 navController.navigate("movie_detail/$movieId")
+                                            },
+                                            onGenreClick = { genreId, genreName ->
+                                                navController.navigate("movies_by_genre/$genreId/$genreName")
+                                            },
+                                            onProfileClick = {
+                                                navController.navigate("user_profile")
                                             }
                                         )
                                     }
@@ -90,6 +98,9 @@ class MainActivity : ComponentActivity() {
                                             authViewModel = authViewModel,
                                             onMovieClick = { movieId ->
                                                 navController.navigate("movie_detail/$movieId")
+                                            },
+                                            onGenreClick = { genreId, genreName ->
+                                                navController.navigate("movies_by_genre/$genreId/$genreName")
                                             }
                                         )
                                     }
@@ -141,7 +152,6 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    // ✅ Corregido: pasar onMovieClick también aquí
                                     composable(
                                         "playlist/{playlistId}",
                                         arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
@@ -156,6 +166,35 @@ class MainActivity : ComponentActivity() {
                                             },
                                             playlistsViewModel = playlistsViewModel,
                                             moviesViewModel = moviesViewModel
+                                        )
+                                    }
+
+                                    composable(
+                                        route = "movies_by_genre/{genreId}/{genreName}",
+                                        arguments = listOf(
+                                            navArgument("genreId") { type = NavType.IntType },
+                                            navArgument("genreName") { type = NavType.StringType }
+                                        )
+                                    ) { backStackEntry ->
+                                        val genreId = backStackEntry.arguments?.getInt("genreId") ?: 0
+                                        val genreName = backStackEntry.arguments?.getString("genreName") ?: ""
+
+                                        MoviesByGenreScreen(
+                                            genreId = genreId,
+                                            genreName = genreName,
+                                            onBack = { navController.popBackStack() },
+                                            onMovieClick = { movieId ->
+                                                navController.navigate("movie_detail/$movieId")
+                                            },
+                                            moviesViewModel = moviesViewModel
+                                        )
+                                    }
+
+                                    // NUEVO: Perfil de usuario
+                                    composable("user_profile") {
+                                        UserScreen(
+                                            authViewModel = authViewModel,
+                                            onBack = { navController.popBackStack() }
                                         )
                                     }
                                 }

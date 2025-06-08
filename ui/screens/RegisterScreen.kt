@@ -20,6 +20,7 @@ fun RegisterScreen(
     val errorMessage by authViewModel.errorMessage.collectAsState()
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
 
+    var username by remember { mutableStateOf("") }  // <-- NUEVO
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -41,6 +42,15 @@ fun RegisterScreen(
         Text("Registrarse", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Nombre de usuario") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = email,
@@ -77,10 +87,10 @@ fun RegisterScreen(
             Button(
                 onClick = {
                     localError = ""
-                    if (password == confirmPassword) {
-                        authViewModel.register(email, password)
-                    } else {
-                        localError = "Las contraseñas no coinciden"
+                    when {
+                        username.isBlank() -> localError = "El nombre de usuario no puede estar vacío"
+                        password != confirmPassword -> localError = "Las contraseñas no coinciden"
+                        else -> authViewModel.register(email, password, username)  // <-- PASAMOS USERNAME
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -107,4 +117,3 @@ fun RegisterScreen(
         }
     }
 }
-
