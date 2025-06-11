@@ -5,10 +5,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,8 +33,14 @@ fun UserScreen(
     val user = authViewModel.currentUser
     val profilePhotoUrl by authViewModel.profilePhotoUrl.collectAsState()
     val username by authViewModel.username.collectAsState()
+    val friendsList by authViewModel.friendsList.collectAsState()
+    val allUsersList by authViewModel.allUsersList.collectAsState()
 
-    // Launcher para seleccionar imagen de galería
+    var showAddFriendDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -40,6 +50,7 @@ fun UserScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Perfil de Usuario") },
@@ -56,10 +67,9 @@ fun UserScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Foto de perfil o círculo blanco clickeable
+            // Foto de perfil
             if (!profilePhotoUrl.isNullOrEmpty()) {
                 AsyncImage(
                     model = profilePhotoUrl,
@@ -67,54 +77,207 @@ fun UserScreen(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .clickable { launcher.launch("image/*") }
+                        .clickable { launcher.launch("image/*") },
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(Color.LightGray)
                         .clickable { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Subir foto",
-                        color = Color.Gray,
-                        fontSize = 16.sp
-                    )
+                    Text("Subir foto", color = Color.Gray, fontSize = 16.sp)
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Mostrar el nombre de usuario
             if (username.isNotEmpty()) {
-                Text(
-                    text = "Nombre de usuario: $username",
-                    fontSize = 18.sp
-                )
+                Text(text = "Nombre de usuario: $username", fontSize = 18.sp)
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             if (user != null) {
                 Text(
                     text = "Email: ${user.email}",
                     fontSize = 20.sp,
                 )
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = {
+                authViewModel.logout()
+                onBack()
+            }) {
+                Text("Cerrar sesión")
+            }
 
-                Button(onClick = {
-                    authViewModel.logout()
-                    onBack()
-                }) {
-                    Text("Cerrar sesión")
+            Spacer(modifier = Modifier.height(24.dp))
+
+            /*
+            // Mostrar todos los usuarios (incluido el propio) para test
+            Text("Todos los usuarios (incluido tú):", fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 150.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                allUsersList.forEach { user ->
+                    Text(text = "- ${user.username} (${user.email ?: "sin email"})", fontSize = 14.sp)
                 }
-            } else {
-                Text("No hay usuario autenticado.")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            */
+
+            // Lista horizontal de amigos con botón eliminar
+            Text("Amigos", fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                friendsList.forEach { friend ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .width(80.dp)
+                    ) {
+                        if (!friend.profilePhotoUrl.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = friend.profilePhotoUrl,
+                                contentDescription = "Amigo",
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.LightGray)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(friend.username.ifEmpty { "Amigo" }, fontSize = 12.sp, maxLines = 1)
+
+                        IconButton(
+                            onClick = {
+                                authViewModel.removeFriend(friend.uid)
+                                authViewModel.loadFriends()
+                                authViewModel.loadAllUsers()
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Eliminar amigo",
+                                tint = Color.Red
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Botón agregar amigo
+            Button(onClick = {
+                authViewModel.loadAllUsers()
+                showAddFriendDialog = true
+                searchQuery = ""
+            }) {
+                Text("Agregar amigo")
             }
         }
+    }
+
+    // Diálogo para buscar y agregar amigos
+    if (showAddFriendDialog) {
+        val filteredUsers = if (searchQuery.isBlank()) {
+            allUsersList.filter {
+                it.username.isNotBlank() &&
+                        it.uid != authViewModel.currentUser?.uid &&
+                        friendsList.none { friend -> friend.uid == it.uid }
+            }
+        } else {
+            allUsersList.filter {
+                it.username.isNotBlank() &&
+                        it.username.contains(searchQuery, ignoreCase = true) &&
+                        it.uid != authViewModel.currentUser?.uid &&
+                        friendsList.none { friend -> friend.uid == it.uid }
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showAddFriendDialog = false },
+            title = { Text("Agregar amigo") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = { Text("Buscar usuario") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (filteredUsers.isEmpty()) {
+                        Text("No se encontraron usuarios", modifier = Modifier.padding(16.dp))
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight(0.5f)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            filteredUsers.forEach { user ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            authViewModel.addFriend(user.uid)
+                                            showAddFriendDialog = false
+                                            authViewModel.loadFriends()
+                                            authViewModel.loadAllUsers()
+                                        }
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (!user.profilePhotoUrl.isNullOrEmpty()) {
+                                        AsyncImage(
+                                            model = user.profilePhotoUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.LightGray)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(user.username)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showAddFriendDialog = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
     }
 }

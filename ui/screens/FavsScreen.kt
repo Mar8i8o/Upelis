@@ -128,40 +128,54 @@ fun FavsScreen(
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newPlaylistName.isBlank()) {
-                            errorMsg = "El nombre no puede estar vacío"
-                            return@TextButton
-                        }
-                        playlistsViewModel.createPlaylist(
-                            name = newPlaylistName.trim(),
-                            movieId = -1,
-                            onSuccess = {
-                                showCreateDialog = false
-                                newPlaylistName = ""
-                                errorMsg = null
-                            },
-                            onError = { msg ->
-                                errorMsg = msg
-                            }
-                        )
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("Aceptar")
+                    Button(
+                        onClick = {
+                            if (newPlaylistName.isBlank()) {
+                                errorMsg = "El nombre no puede estar vacío"
+                                return@Button
+                            }
+                            playlistsViewModel.createPlaylist(
+                                name = newPlaylistName.trim(),
+                                movieId = -1,
+                                onSuccess = {
+                                    showCreateDialog = false
+                                    newPlaylistName = ""
+                                    errorMsg = null
+                                },
+                                onError = { msg ->
+                                    errorMsg = msg
+                                }
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50), // verde
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Aceptar")
+                    }
+                    Button(
+                        onClick = {
+                            showCreateDialog = false
+                            errorMsg = null
+                            newPlaylistName = ""
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF44336), // rojo
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showCreateDialog = false
-                        errorMsg = null
-                        newPlaylistName = ""
-                    }
-                ) {
-                    Text("Cancelar")
-                }
-            }
+            dismissButton = {}
+
         )
     }
 }

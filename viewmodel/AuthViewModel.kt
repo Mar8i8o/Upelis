@@ -33,6 +33,21 @@ class AuthViewModel : ViewModel() {
 
     val currentUser = firebaseAuth.currentUser
 
+    // CORREGIDO: lista de amigos
+    private val _friendsList = MutableStateFlow<List<User>>(emptyList())
+    val friendsList: StateFlow<List<User>> = _friendsList
+
+    // CORREGIDO: lista de todos los usuarios
+    private val _allUsersList = MutableStateFlow<List<User>>(emptyList())
+    val allUsersList: StateFlow<List<User>> = _allUsersList
+
+    data class User(
+        val uid: String = "",
+        val username: String = "",
+        val email: String = "",
+        val profilePhotoUrl: String = ""
+    )
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -44,8 +59,11 @@ class AuthViewModel : ViewModel() {
                         _isUserAuthenticated.value = true
                         loadUsername()
                         loadUserProfilePhoto()
+                        loadFriends()
+                        loadAllUsers()
                     } else {
-                        _errorMessage.value = task.exception?.localizedMessage ?: "Error desconocido"
+                        _errorMessage.value =
+                            task.exception?.localizedMessage ?: "Error desconocido"
                         _isUserAuthenticated.value = false
                     }
                 }
@@ -64,7 +82,7 @@ class AuthViewModel : ViewModel() {
                             val userMap = mapOf(
                                 "username" to username,
                                 "email" to email,
-                                "profilePhotoUrl" to "" // <-- campo inicial vacío o default
+                                "profilePhotoUrl" to ""
                             )
                             database.child("users").child(userId).setValue(userMap)
                                 .addOnCompleteListener { dbTask ->
@@ -74,7 +92,8 @@ class AuthViewModel : ViewModel() {
                                         _username.value = username
                                         _profilePhotoUrl.value = ""
                                     } else {
-                                        _errorMessage.value = dbTask.exception?.localizedMessage ?: "Error al guardar el usuario"
+                                        _errorMessage.value = dbTask.exception?.localizedMessage
+                                            ?: "Error al guardar el usuario"
                                         _isUserAuthenticated.value = false
                                     }
                                 }
@@ -84,7 +103,8 @@ class AuthViewModel : ViewModel() {
                         }
                     } else {
                         _isLoading.value = false
-                        _errorMessage.value = task.exception?.localizedMessage ?: "Error desconocido"
+                        _errorMessage.value =
+                            task.exception?.localizedMessage ?: "Error desconocido"
                         _isUserAuthenticated.value = false
                     }
                 }
@@ -96,6 +116,8 @@ class AuthViewModel : ViewModel() {
         _isUserAuthenticated.value = false
         _username.value = ""
         _profilePhotoUrl.value = null
+        _friendsList.value = emptyList()
+        _allUsersList.value = emptyList()
     }
 
     fun loadUsername() {
@@ -122,21 +144,15 @@ class AuthViewModel : ViewModel() {
             }
     }
 
-    // Nueva función para actualizar la foto de perfil
     fun updateProfilePhoto(uri: Uri) {
         val userId = firebaseAuth.currentUser?.uid ?: return
-
         _isLoading.value = true
         _errorMessage.value = ""
-
-        // Ruta en Storage: photos/{userId}/profile.jpg
         val photoRef = storage.child("photos/$userId/profile.jpg")
-
         photoRef.putFile(uri)
             .addOnSuccessListener {
                 photoRef.downloadUrl.addOnSuccessListener { downloadUri ->
                     val photoUrl = downloadUri.toString()
-                    // Guardamos URL en Realtime Database
                     database.child("users").child(userId).child("profilePhotoUrl")
                         .setValue(photoUrl)
                         .addOnSuccessListener {
@@ -144,17 +160,88 @@ class AuthViewModel : ViewModel() {
                             _isLoading.value = false
                         }
                         .addOnFailureListener { e ->
-                            _errorMessage.value = e.localizedMessage ?: "Error al guardar URL de foto"
+                            _errorMessage.value =
+                                e.localizedMessage ?: "Error al guardar URL de foto"
                             _isLoading.value = false
                         }
-                }.addOnFailureListener { e ->
-                    _errorMessage.value = e.localizedMessage ?: "Error al obtener URL de descarga"
-                    _isLoading.value = false
                 }
             }
             .addOnFailureListener { e ->
                 _errorMessage.value = e.localizedMessage ?: "Error al subir la foto"
                 _isLoading.value = false
             }
+    }
+
+    // 2. REEMPLAZAR loadFriends:
+    fun loadFriends() {
+        val userId = firebaseAuth.currentUser?.uid ?: return
+        database.child("friends").child(userId).get().addOnSuccessListener { snapshot ->
+            val friendIds = snapshot.children.mapNotNull { it.key }
+            if (friendIds.isEmpty()) {
+                _friendsList.value = emptyList()
+                return@addOnSuccessListener
+            }
+
+            val loadedFriends = mutableListOf<User>()
+            var loadedCount = 0
+
+            for (fid in friendIds) {
+                database.child("users").child(fid).get().addOnSuccessListener { userSnap ->
+                    val user = userSnap.getValue(User::class.java)?.copy(uid = fid)
+                    user?.let { loadedFriends.add(it) }
+
+                    loadedCount++
+                    if (loadedCount == friendIds.size) {
+                        _friendsList.value = loadedFriends
+                    }
+                }
+            }
+        }.addOnFailureListener {
+            _errorMessage.value = "Error al cargar amigos"
+        }
+    }
+
+    // 3. MODIFICAR addFriend:
+    fun addFriend(friendUid: String) {
+        val userId = firebaseAuth.currentUser?.uid ?: return
+        database.child("friends").child(userId).child(friendUid).setValue(true)
+            .addOnSuccessListener {
+                loadFriends()
+                loadAllUsers() // Para que se actualice correctamente la lista de disponibles
+            }.addOnFailureListener {
+            _errorMessage.value = "Error al agregar amigo"
+        }
+    }
+
+    // 4. MODIFICAR removeFriend:
+    fun removeFriend(friendUid: String) {
+        val userId = firebaseAuth.currentUser?.uid ?: return
+
+        // Eliminar la amistad del usuario actual
+        database.child("friends").child(userId).child(friendUid).removeValue()
+            .addOnSuccessListener {
+                loadFriends()
+                loadAllUsers()
+            }
+            .addOnFailureListener {
+                _errorMessage.value = it.localizedMessage ?: "Error al eliminar amigo"
+            }
+
+        // Eliminar también la relación inversa
+        database.child("friends").child(friendUid).child(userId).removeValue()
+    }
+
+    // 5. UNIFICAR carga de usuarios: mantener solo loadAllUsers
+    fun loadAllUsers() {
+        database.child("users").get().addOnSuccessListener { snapshot ->
+            val users = snapshot.children.mapNotNull {
+                val uid = it.key ?: return@mapNotNull null
+                val user = it.getValue(User::class.java)?.copy(uid = uid)
+                user
+            }
+            _allUsersList.value = users
+        }.addOnFailureListener {
+            println("Error loading users: ${it.message}")
+        }
     }
 }

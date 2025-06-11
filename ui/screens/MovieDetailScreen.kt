@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,53 +188,66 @@ fun AddToPlaylistDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
-                    errorMsg = "Debes seleccionar o crear una playlist"
-                    return@TextButton
-                }
-
-                errorMsg = null
-                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@TextButton
-                val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
-
-                if (newPlaylistName.isNotBlank()) {
-                    val newKey = db.push().key ?: return@TextButton
-                    val newPlaylist = Playlist(
-                        id = newKey,
-                        name = newPlaylistName,
-                        movieIds = listOf(movieId)
-                    )
-                    db.child(newKey).setValue(newPlaylist)
-                        .addOnSuccessListener { onDismiss() }
-                        .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
-                }
-
-                playlists.forEach { playlist ->
-                    val playlistRef = db.child(playlist.id)
-                    val containsMovie = playlist.movieIds.contains(movieId)
-                    val shouldContainMovie = selectedPlaylists.contains(playlist.id)
-
-                    if (shouldContainMovie && !containsMovie) {
-                        val updatedMovieIds = playlist.movieIds.toMutableList()
-                        updatedMovieIds.add(movieId)
-                        playlistRef.child("movieIds").setValue(updatedMovieIds)
-                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                    } else if (!shouldContainMovie && containsMovie) {
-                        val updatedMovieIds = playlist.movieIds.toMutableList()
-                        updatedMovieIds.remove(movieId)
-                        playlistRef.child("movieIds").setValue(updatedMovieIds)
-                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+            Button(
+                onClick = {
+                    if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
+                        errorMsg = "Debes seleccionar o crear una playlist"
+                        return@Button
                     }
-                }
 
-                onDismiss()
-            }) {
+                    errorMsg = null
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+                    val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
+
+                    if (newPlaylistName.isNotBlank()) {
+                        val newKey = db.push().key ?: return@Button
+                        val newPlaylist = Playlist(
+                            id = newKey,
+                            name = newPlaylistName,
+                            movieIds = listOf(movieId)
+                        )
+                        db.child(newKey).setValue(newPlaylist)
+                            .addOnSuccessListener { onDismiss() }
+                            .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
+                    }
+
+                    playlists.forEach { playlist ->
+                        val playlistRef = db.child(playlist.id)
+                        val containsMovie = playlist.movieIds.contains(movieId)
+                        val shouldContainMovie = selectedPlaylists.contains(playlist.id)
+
+                        if (shouldContainMovie && !containsMovie) {
+                            val updatedMovieIds = playlist.movieIds.toMutableList()
+                            updatedMovieIds.add(movieId)
+                            playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                        } else if (!shouldContainMovie && containsMovie) {
+                            val updatedMovieIds = playlist.movieIds.toMutableList()
+                            updatedMovieIds.remove(movieId)
+                            playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                        }
+                    }
+
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50), // verde
+                    contentColor = Color.White
+                ),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
                 Text("Guardar")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF44336), // rojo
+                    contentColor = Color.White
+                )
+            ) {
                 Text("Cancelar")
             }
         }
