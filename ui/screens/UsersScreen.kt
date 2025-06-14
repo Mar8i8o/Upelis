@@ -19,8 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 
@@ -30,6 +33,24 @@ fun UserScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                authViewModel.loadUsername()
+                authViewModel.loadUserProfilePhoto()
+                authViewModel.loadFriends()
+                authViewModel.loadAllUsers()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val user = authViewModel.currentUser
     val profilePhotoUrl by authViewModel.profilePhotoUrl.collectAsState()
     val username by authViewModel.username.collectAsState()
@@ -92,16 +113,24 @@ fun UserScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
             if (username.isNotEmpty()) {
-                Text(text = "Nombre de usuario: $username", fontSize = 18.sp)
+                Text(
+                    text = "Nombre de usuario: $username",
+                    fontSize = 18.sp,
+                    maxLines = 1
+                )
             }
 
             if (user != null) {
                 Text(
                     text = "Email: ${user.email}",
-                    fontSize = 20.sp,
+                    fontSize = 16.sp,
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
                 authViewModel.logout()
@@ -111,25 +140,6 @@ fun UserScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            /*
-            // Mostrar todos los usuarios (incluido el propio) para test
-            Text("Todos los usuarios (incluido tú):", fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 150.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                allUsersList.forEach { user ->
-                    Text(text = "- ${user.username} (${user.email ?: "sin email"})", fontSize = 14.sp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            */
 
             // Lista horizontal de amigos con botón eliminar
             Text("Amigos", fontSize = 18.sp)
@@ -165,11 +175,16 @@ fun UserScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(friend.username.ifEmpty { "Amigo" }, fontSize = 12.sp, maxLines = 1)
+                        Text(
+                            friend.username.ifEmpty { "Amigo" },
+                            fontSize = 12.sp,
+                            maxLines = 1
+                        )
 
                         IconButton(
                             onClick = {
                                 authViewModel.removeFriend(friend.uid)
+                                // Recarga tras eliminar amigo
                                 authViewModel.loadFriends()
                                 authViewModel.loadAllUsers()
                             },
@@ -200,19 +215,12 @@ fun UserScreen(
 
     // Diálogo para buscar y agregar amigos
     if (showAddFriendDialog) {
-        val filteredUsers = if (searchQuery.isBlank()) {
-            allUsersList.filter {
-                it.username.isNotBlank() &&
-                        it.uid != authViewModel.currentUser?.uid &&
-                        friendsList.none { friend -> friend.uid == it.uid }
-            }
-        } else {
-            allUsersList.filter {
-                it.username.isNotBlank() &&
-                        it.username.contains(searchQuery, ignoreCase = true) &&
-                        it.uid != authViewModel.currentUser?.uid &&
-                        friendsList.none { friend -> friend.uid == it.uid }
-            }
+        val currentUserId = authViewModel.currentUser?.uid
+        val filteredUsers = allUsersList.filter { user ->
+            user.username.isNotBlank() &&
+                    user.uid != currentUserId &&
+                    friendsList.none { friend -> friend.uid == user.uid } &&
+                    (searchQuery.isBlank() || user.username.contains(searchQuery, ignoreCase = true))
         }
 
         AlertDialog(
@@ -232,7 +240,7 @@ fun UserScreen(
                     } else {
                         Column(
                             modifier = Modifier
-                                .fillMaxHeight(0.5f)
+                                .heightIn(max = 300.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
                             filteredUsers.forEach { user ->
@@ -265,7 +273,7 @@ fun UserScreen(
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(user.username)
+                                    Text(user.username, maxLines = 1)
                                 }
                             }
                         }

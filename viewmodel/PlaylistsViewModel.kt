@@ -4,47 +4,113 @@ import androidx.lifecycle.ViewModel
 import com.example.upelis_mariomarin.data.model.Playlist
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class PlaylistsViewModel : ViewModel() {
+
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists: StateFlow<List<Playlist>> = _playlists
 
+    private val _sharedPlaylists = MutableStateFlow<List<Playlist>>(emptyList())
+    val sharedPlaylists: StateFlow<List<Playlist>> = _sharedPlaylists
+
     private val database = FirebaseDatabase.getInstance().reference
-    private val userId = FirebaseAuth.getInstance().currentUser?.uid
+    private val firestore = Firebase.firestore
+
+    private val userId: String?
+        get() = FirebaseAuth.getInstance().currentUser?.uid
+
+    private var playlistsListener: ValueEventListener? = null
 
     init {
+        startListeningSharedPlaylists()
+    }
+
+    fun startListeningSharedPlaylists() {
         loadPlaylists()
+        loadSharedPlaylists()
+    }
+
+    fun stopListeningPlaylists() {
+        val uid = userId ?: return
+        val ref = database.child("users").child(uid).child("playlists")
+        playlistsListener?.let { ref.removeEventListener(it) }
+        playlistsListener = null
     }
 
     private fun loadPlaylists() {
-        if (userId == null) return
+        val uid = userId ?: return
+        val ref = database.child("users").child(uid).child("playlists")
 
-        val ref = database.child("users").child(userId).child("playlists")
-        ref.addValueEventListener(object : ValueEventListener {
+        // Eliminar listener anterior si existe
+        playlistsListener?.let { ref.removeEventListener(it) }
+
+        playlistsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val list = mutableListOf<Playlist>()
                 for (child in snapshot.children) {
                     val playlist = child.getValue(Playlist::class.java)
                     if (playlist != null) {
-                        // Firebase puede devolver movieIds como List<Long>, aquí convertimos a List<Int>
-                        val movieIdsRaw = child.child("movieIds").children.mapNotNull { it.getValue(Long::class.java)?.toInt() }
+                        val movieIdsRaw = child.child("movieIds").children.mapNotNull {
+                            it.getValue(Long::class.java)?.toInt()
+                        }
                         list.add(playlist.copy(id = child.key ?: "", movieIds = movieIdsRaw))
                     }
                 }
                 _playlists.value = list
             }
 
-            override fun onCancelled(error: DatabaseError) {}
-        })
+            override fun onCancelled(error: DatabaseError) {
+                // Puedes añadir logs o manejo de error aquí si quieres
+            }
+        }
+        ref.addValueEventListener(playlistsListener!!)
     }
 
-    // --- NUEVAS FUNCIONES ---
+    fun loadSharedPlaylists() {
+        val currentUserUid = userId ?: return
+        val sharedRef = firestore.collection("shared_playlists")
+
+        sharedRef.whereEqualTo("sharedWithUid", currentUserUid).get()
+            .addOnSuccessListener { snapshot ->
+                val playlistIds = snapshot.documents.mapNotNull { it.getString("playlistId") }
+                if (playlistIds.isEmpty()) {
+                    _sharedPlaylists.value = emptyList()
+                    return@addOnSuccessListener
+                }
+
+                val playlistsList = mutableListOf<Playlist>()
+
+                database.child("users").get().addOnSuccessListener { usersSnapshot ->
+                    for (userSnapshot in usersSnapshot.children) {
+                        val userPlaylistsSnapshot = userSnapshot.child("playlists")
+                        for (pid in playlistIds) {
+                            val playlistSnapshot = userPlaylistsSnapshot.child(pid)
+                            val playlist = playlistSnapshot.getValue(Playlist::class.java)
+                            if (playlist != null && playlistsList.none { it.id == pid }) {
+                                val movieIdsRaw = playlistSnapshot.child("movieIds").children.mapNotNull {
+                                    it.getValue(Long::class.java)?.toInt()
+                                }
+                                playlistsList.add(playlist.copy(id = pid, movieIds = movieIdsRaw))
+                            }
+                        }
+                    }
+                    _sharedPlaylists.value = playlistsList
+                }.addOnFailureListener {
+                    _sharedPlaylists.value = emptyList()
+                }
+            }
+            .addOnFailureListener {
+                _sharedPlaylists.value = emptyList()
+            }
+    }
 
     fun deletePlaylist(playlistId: String) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
+        val uid = userId ?: return
+        val db = database.child("users").child(uid).child("playlists")
         db.child(playlistId).removeValue()
     }
 
@@ -54,14 +120,14 @@ class PlaylistsViewModel : ViewModel() {
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
-        if (userId == null) {
+        val uid = userId
+        if (uid == null) {
             onError("Usuario no autenticado")
             return
         }
-        val playlistRef = database.child("users").child(userId).child("playlists").child(playlistId)
+        val playlistRef = database.child("users").child(uid).child("playlists").child(playlistId)
         playlistRef.child("name").setValue(newName)
             .addOnSuccessListener {
-                // Actualiza localmente la lista de playlists para que Compose refresque UI
                 val updatedList = _playlists.value.map { playlist ->
                     if (playlist.id == playlistId) playlist.copy(name = newName) else playlist
                 }
@@ -73,19 +139,18 @@ class PlaylistsViewModel : ViewModel() {
             }
     }
 
-
-
     fun createPlaylist(
         name: String,
         movieId: Int,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        if (userId == null) {
+        val uid = userId
+        if (uid == null) {
             onError("Usuario no autenticado")
             return
         }
-        val db = database.child("users").child(userId).child("playlists")
+        val db = database.child("users").child(uid).child("playlists")
         val newKey = db.push().key
         if (newKey == null) {
             onError("Error al generar clave")
@@ -95,7 +160,7 @@ class PlaylistsViewModel : ViewModel() {
         val newPlaylist = Playlist(
             id = newKey,
             name = name,
-            movieIds = listOf(movieId)
+            movieIds = if (movieId != -1) listOf(movieId) else emptyList()
         )
 
         db.child(newKey).setValue(newPlaylist)
@@ -109,11 +174,12 @@ class PlaylistsViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        if (userId == null) {
+        val uid = userId
+        if (uid == null) {
             onError("Usuario no autenticado")
             return
         }
-        val db = database.child("users").child(userId).child("playlists")
+        val db = database.child("users").child(uid).child("playlists")
         val playlistRef = db.child(playlistId)
 
         playlistRef.get().addOnSuccessListener { snapshot ->
@@ -135,5 +201,29 @@ class PlaylistsViewModel : ViewModel() {
             onError("Error al leer la playlist: ${it.message}")
         }
     }
-}
 
+    fun sharePlaylistWithFriend(
+        playlistId: String,
+        friendUid: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        val uid = userId
+        if (uid == null) {
+            onError("Usuario no autenticado")
+            return
+        }
+        val sharedRef = firestore.collection("shared_playlists")
+
+        val data = mapOf(
+            "playlistId" to playlistId,
+            "sharedWithUid" to friendUid,
+            "sharedByUid" to uid,
+            "sharedAt" to System.currentTimeMillis()
+        )
+
+        sharedRef.add(data)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onError("Error al compartir playlist: ${e.message}") }
+    }
+}

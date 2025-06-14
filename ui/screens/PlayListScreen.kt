@@ -1,22 +1,28 @@
 package com.example.upelis_mariomarin.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share // Añadido: icono compartir
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
+import com.example.upelis_mariomarin.viewmodel.AuthViewModel // Añadido: para amigos
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,16 +33,21 @@ fun PlayListScreen(
     onMovieClick: (Int) -> Unit,
     playlistsViewModel: PlaylistsViewModel = viewModel(),
     moviesViewModel: MoviesViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(), // Añadido: authViewModel para amigos
     modifier: Modifier = Modifier
 ) {
     val playlists by playlistsViewModel.playlists.collectAsState()
     val allMovies by moviesViewModel.movies.collectAsState()
     val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
+    val friendsList by authViewModel.friendsList.collectAsState()
 
     val playlist = playlists.find { it.id == playlistId }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+
+    // Añadido: estado para mostrar diálogo compartir
+    var showShareDialog by remember { mutableStateOf(false) }
 
     // Cargar detalles de películas que no estén en allMovies ni en movieDetailsMap
     LaunchedEffect(playlist) {
@@ -73,6 +84,13 @@ fun PlayListScreen(
                         }
                         IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar playlist")
+                        }
+                        // Añadido: botón compartir
+                        IconButton(onClick = {
+                            authViewModel.loadFriends() // cargar amigos si es necesario
+                            showShareDialog = true
+                        }) {
+                            Icon(Icons.Default.Share, contentDescription = "Compartir playlist")
                         }
                     }
                 },
@@ -115,7 +133,6 @@ fun PlayListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onMovieClick(movie.id) },
-                        //elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Row(modifier = Modifier.padding(8.dp)) {
                             AsyncImage(
@@ -247,6 +264,65 @@ fun PlayListScreen(
                 }
             },
             dismissButton = {}
+        )
+    }
+
+    // Diálogo compartir playlist (nuevo)
+    if (showShareDialog && playlist != null) {
+        AlertDialog(
+            onDismissRequest = { showShareDialog = false },
+            title = { Text("Compartir playlist") },
+            text = {
+                if (friendsList.isEmpty()) {
+                    Text("No tienes amigos para compartir.")
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight(0.5f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        friendsList.forEach { friend ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        playlistsViewModel.sharePlaylistWithFriend(
+                                            playlistId = playlist.id,
+                                            friendUid = friend.uid
+                                        )
+                                        showShareDialog = false
+                                    }
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (!friend.profilePhotoUrl.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = friend.profilePhotoUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(MaterialTheme.shapes.small)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .background(Color.LightGray, MaterialTheme.shapes.small)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(friend.username, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showShareDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 }
