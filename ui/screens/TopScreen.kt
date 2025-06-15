@@ -65,17 +65,18 @@ fun TopScreen(
         ) {
             item {
                 Text(
-                    text = statusMessage,
+                    text = "Películas recomendadas 🔥",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = Color.Yellow,
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
 
             items(movies) { movie ->
 
-                // Lanzar la carga del detalle solo si no está cargado ya
                 LaunchedEffect(movie.id) {
                     if (movieDetailsMap[movie.id] == null) {
                         moviesViewModel.fetchMovieDetails(movie.id)
