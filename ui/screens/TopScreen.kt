@@ -33,6 +33,7 @@ fun TopScreen(
     val movies by moviesViewModel.movies.collectAsState(initial = emptyList())
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
+    val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
 
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) {
@@ -40,7 +41,6 @@ fun TopScreen(
         }
     }
 
-    // IDs favoritos para mostrar estrella amarilla
     val favoriteMovieIds = remember(playlists) {
         playlists.flatMap { it.movieIds }.toSet()
     }
@@ -74,35 +74,73 @@ fun TopScreen(
             }
 
             items(movies) { movie ->
+
+                // Lanzar la carga del detalle solo si no está cargado ya
+                LaunchedEffect(movie.id) {
+                    if (movieDetailsMap[movie.id] == null) {
+                        moviesViewModel.fetchMovieDetails(movie.id)
+                    }
+                }
+
+                val details = movieDetailsMap[movie.id]
+                val year = movie.releaseDate?.take(4) ?: "----"
+                val duration = details?.runtime ?: 0
+
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
+                        .fillMaxWidth()
                         .clickable { onMovieClick(movie.id) }
-                        .padding(8.dp)
                 ) {
-                    AsyncImage(
-                        model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
-                        contentDescription = movie.title,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = movie.title ?: "Título desconocido",
-                            modifier = Modifier.weight(1f)
+                    Row(modifier = Modifier.padding(8.dp)) {
+                        AsyncImage(
+                            model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
+                            contentDescription = movie.title,
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(150.dp),
+                            contentScale = ContentScale.Crop
                         )
-                        if (favoriteMovieIds.contains(movie.id)) {
-                            Icon(
-                                imageVector = Icons.Filled.Star,
-                                contentDescription = "Favorita",
-                                tint = Color.Yellow,
-                                modifier = Modifier.size(20.dp)
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(end = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = movie.title ?: "Título desconocido",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (favoriteMovieIds.contains(movie.id)) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Star,
+                                        contentDescription = "Favorita",
+                                        tint = Color.Yellow,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Año: $year • Duración: ${if (duration > 0) "$duration min" else "Desconocida"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = movie.overview?.take(150)?.plus("...") ?: "Sin descripción.",
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 4
                             )
                         }
                     }
