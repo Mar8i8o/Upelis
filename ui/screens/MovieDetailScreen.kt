@@ -1,6 +1,5 @@
 package com.example.upelis_mariomarin.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,12 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.data.model.MovieDetails
 import com.example.upelis_mariomarin.data.model.Playlist
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import androidx.compose.ui.graphics.Color
@@ -33,6 +31,18 @@ fun MovieDetailScreen(
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var isWatched by remember { mutableStateOf(false) }
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Cargar si la película ya ha sido vista
+    LaunchedEffect(movieDetails.id) {
+        val dbRef = FirebaseDatabase.getInstance().reference
+            .child("users").child(userId ?: "").child("watchedMovies").child(movieDetails.id.toString())
+
+        dbRef.get().addOnSuccessListener { snapshot ->
+            isWatched = snapshot.getValue(Boolean::class.java) == true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -44,15 +54,12 @@ fun MovieDetailScreen(
                     }
                 },
                 modifier = Modifier.offset(y = (-50).dp)
-                // ❗ NO padding ni offset
             )
         },
-        // ❗ No Insets extra
         contentWindowInsets = WindowInsets(0),
         modifier = modifier
     ) { innerPadding ->
 
-        // 🔧 Usamos solo bottom padding si es necesario
         Column(
             modifier = Modifier
                 .padding(
@@ -75,6 +82,15 @@ fun MovieDetailScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (isWatched) {
+                Text(
+                    text = "✅ Ya has visto esta película",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF4CAF50)),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Text(
                 text = movieDetails.overview ?: "Sin descripción",
@@ -108,6 +124,30 @@ fun MovieDetailScreen(
             Button(onClick = { showDialog = true }) {
                 Text("Añadir a playlist")
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val dbRef = FirebaseDatabase.getInstance().reference
+                        .child("users").child(userId ?: return@Button).child("watchedMovies")
+                        .child(movieDetails.id.toString())
+
+                    if (isWatched) {
+                        dbRef.removeValue()
+                    } else {
+                        dbRef.setValue(true)
+                    }
+
+                    isWatched = !isWatched
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
+                    contentColor = Color.White
+                )
+            ) {
+                Text(if (isWatched) "Marcar como no vista" else "Marcar como vista")
+            }
         }
     }
 
@@ -119,8 +159,6 @@ fun MovieDetailScreen(
         )
     }
 }
-
-
 
 @Composable
 fun AddToPlaylistDialog(
@@ -232,7 +270,7 @@ fun AddToPlaylistDialog(
                     onDismiss()
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50), // verde
+                    containerColor = Color(0xFF4CAF50),
                     contentColor = Color.White
                 ),
                 modifier = Modifier.padding(end = 8.dp)
@@ -244,7 +282,7 @@ fun AddToPlaylistDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFF44336), // rojo
+                    containerColor = Color(0xFFF44336),
                     contentColor = Color.White
                 )
             ) {
