@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +15,7 @@ import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
+import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -25,6 +27,7 @@ fun TopScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     playlistsViewModel: PlaylistsViewModel = viewModel(),
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(), // añadido
     onLogout: () -> Unit = {},
     onMovieClick: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -34,11 +37,16 @@ fun TopScreen(
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
     val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
+    val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState() // añadido
 
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) {
             onLogout()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        watchedMoviesViewModel.loadAllWatchedMovies()
     }
 
     val favoriteMovieIds = remember(playlists) {
@@ -87,6 +95,8 @@ fun TopScreen(
                 val year = movie.releaseDate?.take(4) ?: "----"
                 val duration = details?.runtime ?: 0
 
+                val isWatched = watchedMovies[movie.id] == true // check vista
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -123,6 +133,15 @@ fun TopScreen(
                                         imageVector = Icons.Filled.Star,
                                         contentDescription = "Favorita",
                                         tint = Color.Yellow,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                if (isWatched) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Película vista",
+                                        tint = Color(0xFF4CAF50),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
