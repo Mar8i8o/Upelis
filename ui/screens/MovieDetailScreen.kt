@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import androidx.compose.ui.graphics.Color
+import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,20 +29,17 @@ fun MovieDetailScreen(
     movieDetails: MovieDetails,
     onBack: () -> Unit,
     playlistsViewModel: PlaylistsViewModel = viewModel(),
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var isWatched by remember { mutableStateOf(false) }
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    var loading by remember { mutableStateOf(true) }
 
-    // Cargar si la película ya ha sido vista
     LaunchedEffect(movieDetails.id) {
-        val dbRef = FirebaseDatabase.getInstance().reference
-            .child("users").child(userId ?: "").child("watchedMovies").child(movieDetails.id.toString())
-
-        dbRef.get().addOnSuccessListener { snapshot ->
-            isWatched = snapshot.getValue(Boolean::class.java) == true
-        }
+        loading = true
+        isWatched = watchedMoviesViewModel.checkIfWatched(movieDetails.id)
+        loading = false
     }
 
     Scaffold(
@@ -83,7 +81,7 @@ fun MovieDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            if (isWatched) {
+            if (!loading && isWatched) {
                 Text(
                     text = "✅ Ya has visto esta película",
                     style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF4CAF50)),
@@ -129,16 +127,7 @@ fun MovieDetailScreen(
 
             Button(
                 onClick = {
-                    val dbRef = FirebaseDatabase.getInstance().reference
-                        .child("users").child(userId ?: return@Button).child("watchedMovies")
-                        .child(movieDetails.id.toString())
-
-                    if (isWatched) {
-                        dbRef.removeValue()
-                    } else {
-                        dbRef.setValue(true)
-                    }
-
+                    watchedMoviesViewModel.toggleWatched(movieDetails.id)
                     isWatched = !isWatched
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -159,6 +148,7 @@ fun MovieDetailScreen(
         )
     }
 }
+
 
 @Composable
 fun AddToPlaylistDialog(

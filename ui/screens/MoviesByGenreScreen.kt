@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
+import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,13 +28,16 @@ fun MoviesByGenreScreen(
     onBack: () -> Unit,
     onMovieClick: (Int) -> Unit,
     moviesViewModel: MoviesViewModel,
-    playlistsViewModel: PlaylistsViewModel = viewModel()
+    playlistsViewModel: PlaylistsViewModel = viewModel(),
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel()
 ) {
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState()
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
+    val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState()
 
     LaunchedEffect(genreId) {
         moviesViewModel.loadMoviesByGenre(genreId)
+        watchedMoviesViewModel.loadAllWatchedMovies()  // Cargar las vistas
     }
 
     val moviesForGenre = genreMoviesMap[genreId] ?: emptyList()
@@ -62,6 +67,8 @@ fun MoviesByGenreScreen(
             contentPadding = PaddingValues(16.dp)
         ) {
             items(moviesForGenre) { movie ->
+                val isWatched = watchedMovies[movie.id] == true
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -90,6 +97,15 @@ fun MoviesByGenreScreen(
                                     imageVector = Icons.Filled.Star,
                                     contentDescription = "Favorita",
                                     tint = Color.Yellow,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            if (isWatched) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = "Película vista",
+                                    tint = Color(0xFF4CAF50),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
