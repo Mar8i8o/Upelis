@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +47,6 @@ fun UserScreen(
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -74,12 +75,27 @@ fun UserScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Perfil de Usuario") },
-                navigationIcon = {
-                    IconButton(onClick = { onBack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets(0))
+                    .offset(y = (-50).dp)
+                    .padding(vertical = 10.dp),
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        IconButton(onClick = { onBack() }) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Volver",
+                                tint = Color.White
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Perfil", color = Color.White)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         }
     ) { paddingValues ->
@@ -87,7 +103,7 @@ fun UserScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Foto de perfil
@@ -98,7 +114,7 @@ fun UserScreen(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .clickable { launcher.launch("image/*") },
+                        .clickable { launcher.launch("image/*") }
                 )
             } else {
                 Box(
@@ -109,45 +125,57 @@ fun UserScreen(
                         .clickable { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Subir foto", color = Color.Gray, fontSize = 16.sp)
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Subir foto",
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (username.isNotEmpty()) {
-                Text(
-                    text = "Nombre de usuario: $username",
-                    fontSize = 18.sp,
-                    maxLines = 1
-                )
-            }
-
-            if (user != null) {
-                Text(
-                    text = "Email: ${user.email}",
-                    fontSize = 16.sp,
-                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = {
-                authViewModel.logout()
-                onBack()
-            }) {
-                Text("Cerrar sesión")
+            // Nombre de usuario
+            if (username.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Nombre: $username", fontSize = 18.sp)
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // Lista horizontal de amigos con botón eliminar
-            Text("Amigos", fontSize = 18.sp)
+            // Email
+            user?.email?.let { email ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Email, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(email, fontSize = 16.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    authViewModel.logout()
+                    onBack()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Cerrar sesión", color = MaterialTheme.colorScheme.onError)
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text("Amigos", fontSize = 18.sp, color = Color.White)
             Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
                     .horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -171,49 +199,47 @@ fun UserScreen(
                                 modifier = Modifier
                                     .size(60.dp)
                                     .clip(CircleShape)
-                                    .background(Color.LightGray)
-                            )
+                                    .background(Color.LightGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+                            }
                         }
+
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            friend.username.ifEmpty { "Amigo" },
-                            fontSize = 12.sp,
-                            maxLines = 1
-                        )
+                        Text(friend.username.ifEmpty { "Amigo" }, fontSize = 12.sp, maxLines = 1)
 
                         IconButton(
                             onClick = {
                                 authViewModel.removeFriend(friend.uid)
-                                // Recarga tras eliminar amigo
                                 authViewModel.loadFriends()
                                 authViewModel.loadAllUsers()
                             },
                             modifier = Modifier.size(24.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Eliminar amigo",
-                                tint = Color.Red
-                            )
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
-            // Botón agregar amigo
-            Button(onClick = {
-                authViewModel.loadAllUsers()
-                showAddFriendDialog = true
-                searchQuery = ""
-            }) {
-                Text("Agregar amigo")
+            Button(
+                onClick = {
+                    authViewModel.loadAllUsers()
+                    showAddFriendDialog = true
+                    searchQuery = ""
+                }
+            ) {
+                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Agregar amigo", color = Color.White)
             }
         }
     }
 
-    // Diálogo para buscar y agregar amigos
+    // Diálogo para agregar amigo (sin cambios)
     if (showAddFriendDialog) {
         val currentUserId = authViewModel.currentUser?.uid
         val filteredUsers = allUsersList.filter { user ->
@@ -235,6 +261,7 @@ fun UserScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+
                     if (filteredUsers.isEmpty()) {
                         Text("No se encontraron usuarios", modifier = Modifier.padding(16.dp))
                     } else {
@@ -269,8 +296,11 @@ fun UserScreen(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(Color.LightGray)
-                                        )
+                                                .background(Color.LightGray),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+                                        }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(user.username, maxLines = 1)
@@ -289,3 +319,4 @@ fun UserScreen(
         )
     }
 }
+

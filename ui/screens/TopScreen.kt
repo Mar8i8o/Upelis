@@ -58,12 +58,14 @@ fun TopScreen(
             .padding(16.dp)
             .fillMaxSize()
     ) {
+        /*
         Button(
             onClick = { authViewModel.logout() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Cerrar sesión")
         }
+        */
 
         Spacer(modifier = Modifier.height(16.dp))
 
