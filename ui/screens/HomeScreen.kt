@@ -106,6 +106,7 @@ fun HomeScreen(
             color = Color.Yellow
         )
 
+        /*
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
@@ -115,7 +116,10 @@ fun HomeScreen(
             Text("Cerrar sesión")
         }
 
+*/
         Spacer(modifier = Modifier.height(16.dp))
+
+
 
         if (genres.isEmpty()) {
             Text("No se encontraron géneros.", style = MaterialTheme.typography.bodyMedium)

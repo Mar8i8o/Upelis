@@ -1,11 +1,14 @@
 package com.example.upelis_mariomarin.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,113 +45,132 @@ fun MovieDetailScreen(
         loading = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(movieDetails.title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                modifier = Modifier.offset(y = (-50).dp)
-            )
-        },
-        contentWindowInsets = WindowInsets(0),
-        modifier = modifier
-    ) { innerPadding ->
+    val posterUrl = "https://image.tmdb.org/t/p/w500${movieDetails.posterPath}"
 
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .padding(
-                    top = 80.dp,
-                    bottom = innerPadding.calculateBottomPadding(),
-                    start = 16.dp,
-                    end = 16.dp
-                )
                 .verticalScroll(rememberScrollState())
         ) {
-            val posterUrl = "https://image.tmdb.org/t/p/w500${movieDetails.posterPath}"
+            Box {
+                AsyncImage(
+                    model = posterUrl,
+                    contentDescription = movieDetails.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(450.dp),
+                    contentScale = ContentScale.Crop
+                )
 
-            AsyncImage(
-                model = posterUrl,
-                contentDescription = movieDetails.title,
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.TopStart)
+                        .background(Color.Black.copy(alpha = 0.6f), shape = MaterialTheme.shapes.small)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                }
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (!loading && isWatched) {
+                    .background(Color(0xFF210F37), shape = MaterialTheme.shapes.large)
+                    .padding(24.dp)
+            ) {
                 Text(
-                    text = "✅ Ya has visto esta película",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF4CAF50)),
-                    fontWeight = FontWeight.SemiBold
+                    text = movieDetails.title,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (!loading && isWatched) {
+                    Text(
+                        text = "✅ Ya has visto esta película",
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Text(
+                    text = movieDetails.overview ?: "Sin descripción disponible",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "🎬 Duración: ${movieDetails.runtime ?: "?"} min",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "🎭 Géneros: ${movieDetails.genres?.joinToString { it.name } ?: "Desconocido"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "⭐ Puntuación: ${movieDetails.voteAverage ?: "?"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Text(
+                    text = "📅 Estreno: ${movieDetails.releaseDate ?: "Desconocido"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    OutlinedButton(
+                        onClick = { showDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Añadir a playlist")
+                    }
+
+                    Button(
+                        onClick = {
+                            watchedMoviesViewModel.toggleWatched(movieDetails.id)
+                            isWatched = !isWatched
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (isWatched) "No vista" else "Vista")
+                    }
+                }
             }
-
-            Text(
-                text = movieDetails.overview ?: "Sin descripción",
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Duración: ${movieDetails.runtime ?: "Desconocida"} minutos",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Géneros: ${movieDetails.genres?.joinToString { it.name } ?: "No disponible"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Puntuación: ${movieDetails.voteAverage ?: "No disponible"}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
-            )
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
 
-            Button(onClick = { showDialog = true }) {
-                Text("Añadir a playlist")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    watchedMoviesViewModel.toggleWatched(movieDetails.id)
-                    isWatched = !isWatched
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
-                    contentColor = Color.White
-                )
-            ) {
-                Text(if (isWatched) "Marcar como no vista" else "Marcar como vista")
-            }
+        if (showDialog) {
+            AddToPlaylistDialog(
+                movieId = movieDetails.id,
+                onDismiss = { showDialog = false },
+                playlistsViewModel = playlistsViewModel
+            )
         }
     }
-
-    if (showDialog) {
-        AddToPlaylistDialog(
-            movieId = movieDetails.id,
-            onDismiss = { showDialog = false },
-            playlistsViewModel = playlistsViewModel
-        )
-    }
 }
-
 
 @Composable
 fun AddToPlaylistDialog(
