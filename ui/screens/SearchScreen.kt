@@ -34,7 +34,7 @@ fun SearchScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     playlistsViewModel: PlaylistsViewModel = viewModel(),
-    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(),  // << Añadido aquí
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(),
     onLogout: () -> Unit = {},
     onMovieClick: (Int) -> Unit,
     onGenreClick: (Int, String) -> Unit,
@@ -44,7 +44,7 @@ fun SearchScreen(
     val genres by moviesViewModel.genres.collectAsState(initial = emptyList())
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState(initial = emptyMap())
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
-    val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState()  // << Observamos las vistas
+    val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState()
 
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -56,7 +56,6 @@ fun SearchScreen(
         if (!isUserAuthenticated) onLogout()
     }
 
-    // Cargar todas las películas vistas al iniciar la pantalla
     LaunchedEffect(Unit) {
         watchedMoviesViewModel.loadAllWatchedMovies()
     }
@@ -110,7 +109,7 @@ fun SearchScreen(
                             } else {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(movies) { movie ->
-                                        val isWatched = watchedMovies[movie.id] == true  // << Estado vista
+                                        val isWatched = watchedMovies[movie.id] == true
 
                                         Column(
                                             modifier = Modifier
@@ -164,7 +163,8 @@ fun SearchScreen(
                 }
             }
         } else {
-            val allMovies = genreMoviesMap.values.flatten()
+            val allMovies = genreMoviesMap.values.flatten().distinctBy { it.id }
+
             val filteredMovies = remember(searchQuery.text, allMovies) {
                 allMovies.filter { movie ->
                     movie.title?.contains(searchQuery.text, ignoreCase = true) == true
@@ -178,7 +178,7 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(filteredMovies) { movie ->
-                    val isWatched = watchedMovies[movie.id] == true  // << Estado vista aquí también
+                    val isWatched = watchedMovies[movie.id] == true
 
                     Column(
                         modifier = Modifier
@@ -228,4 +228,3 @@ fun SearchScreen(
         }
     }
 }
-
