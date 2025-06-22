@@ -74,7 +74,13 @@ fun SearchScreen(
             placeholder = { Text("Buscar películas...") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
             singleLine = true,
-            maxLines = 1
+            maxLines = 1,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                focusedLabelColor = Color.White,     // Color del label al enfocar
+                cursorColor = Color.White            // Color del cursor
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))

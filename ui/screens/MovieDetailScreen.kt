@@ -232,7 +232,14 @@ fun AddToPlaylistDialog(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     label = { Text("Nombre playlist") },
-                    isError = errorMsg != null
+                    isError = errorMsg != null,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                        unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                        focusedLabelColor = Color.White,     // Color del label al enfocar
+                        cursorColor = Color.White            // Color del cursor
+                    )
+
                 )
                 errorMsg?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }

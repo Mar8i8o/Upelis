@@ -239,7 +239,13 @@ fun PlayListScreen(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     label = { Text("Nombre") },
-                    singleLine = true
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                        unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                        focusedLabelColor = Color.White,     // Color del label al enfocar
+                        cursorColor = Color.White            // Color del cursor
+                    )
                 )
             },
             confirmButton = {

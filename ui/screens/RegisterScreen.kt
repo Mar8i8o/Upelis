@@ -51,7 +51,13 @@ fun RegisterScreen(
             value = username,
             onValueChange = { username = it },
             label = { Text("Nombre de usuario") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                focusedLabelColor = Color.White,     // Color del label al enfocar
+                cursorColor = Color.White            // Color del cursor
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -60,7 +66,14 @@ fun RegisterScreen(
             value = email,
             onValueChange = { email = it },
             label = { Text("Correo electrónico") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                focusedLabelColor = Color.White,     // Color del label al enfocar
+                cursorColor = Color.White            // Color del cursor
+            )
+
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -70,7 +83,13 @@ fun RegisterScreen(
             onValueChange = { password = it },
             label = { Text("Contraseña") },
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                focusedLabelColor = Color.White,     // Color del label al enfocar
+                cursorColor = Color.White            // Color del cursor
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -80,7 +99,13 @@ fun RegisterScreen(
             onValueChange = { confirmPassword = it },
             label = { Text("Confirmar contraseña") },
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+            unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+            focusedLabelColor = Color.White,     // Color del label al enfocar
+            cursorColor = Color.White            // Color del cursor
+        )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
