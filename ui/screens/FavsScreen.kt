@@ -57,7 +57,6 @@ fun FavsScreen(
         moviesViewModel.loadAllMovies()
     }
 
-
     Column(modifier = modifier.padding(16.dp)) {
         val tabs = listOf("Mis playlists", "Compartidas")
 
@@ -106,7 +105,7 @@ fun FavsScreen(
         if (playlistsToShow.isEmpty()) {
             Text(if (selectedTabIndex == 0) "No tienes playlists creadas." else "No tienes playlists compartidas.")
         } else {
-            playlistsToShow.forEach { playlist ->
+            playlistsToShow.forEachIndexed { index, playlist ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -133,7 +132,7 @@ fun FavsScreen(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Compartir playlist",
-                                tint = Color(0xFF03A9F4)
+                                tint = Color.White
                             )
                         }
                     }
@@ -160,6 +159,15 @@ fun FavsScreen(
                             )
                         }
                     }
+                }
+
+                // Divider entre playlists, excepto después del último
+                if (index < playlistsToShow.size - 1) {
+                    Divider(
+                        color = Color(0xFF03A9F4).copy(alpha = 0.2f),
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
                 }
             }
         }
@@ -314,4 +322,3 @@ fun FavsScreen(
         )
     }
 }
-
