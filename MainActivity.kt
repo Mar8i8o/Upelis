@@ -190,13 +190,27 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
-                                    // NUEVO: Perfil de usuario
+                                    // MODIFICADO: Perfil de usuario con acceso a películas vistas
                                     composable("user_profile") {
                                         UserScreen(
                                             authViewModel = authViewModel,
-                                            onBack = { navController.popBackStack() }
+                                            onBack = { navController.popBackStack() },
+                                            onGoToMoviesScreen = {
+                                                navController.navigate("watched_movies")
+                                            }
                                         )
                                     }
+
+                                    composable("watched_movies") {
+                                        WatchedMoviesScreen(
+                                            moviesViewModel = moviesViewModel,
+                                            onBack = { navController.popBackStack() },
+                                            onMovieClick = { movieId ->
+                                                navController.navigate("movie_detail/$movieId")
+                                            }
+                                        )
+                                    }
+
                                 }
                             }
                         }

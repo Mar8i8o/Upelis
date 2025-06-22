@@ -33,7 +33,8 @@ import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 @Composable
 fun UserScreen(
     authViewModel: AuthViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onGoToMoviesScreen: () -> Unit // Nuevo parámetro para navegación
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -236,10 +237,19 @@ fun UserScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Agregar amigo", color = Color.White)
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Botón para navegar a pantalla de películas
+            Button(
+                onClick = { onGoToMoviesScreen() }
+            ) {
+                Text("Ir a Películas")
+            }
         }
     }
 
-    // Diálogo para agregar amigo (sin cambios)
+    // Diálogo para agregar amigo
     if (showAddFriendDialog) {
         val currentUserId = authViewModel.currentUser?.uid
         val filteredUsers = allUsersList.filter { user ->
@@ -260,10 +270,10 @@ fun UserScreen(
                         label = { Text("Buscar usuario") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.White,   // Borde cuando está seleccionado
-                            unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
-                            focusedLabelColor = Color.White,     // Color del label al enfocar
-                            cursorColor = Color.White            // Color del cursor
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedLabelColor = Color.White,
+                            cursorColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -325,4 +335,3 @@ fun UserScreen(
         )
     }
 }
-
