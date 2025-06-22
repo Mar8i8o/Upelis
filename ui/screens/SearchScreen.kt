@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
+import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +34,7 @@ fun SearchScreen(
     moviesViewModel: MoviesViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     playlistsViewModel: PlaylistsViewModel = viewModel(),
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(),
     onLogout: () -> Unit = {},
     onMovieClick: (Int) -> Unit,
     onGenreClick: (Int, String) -> Unit,
@@ -41,6 +44,7 @@ fun SearchScreen(
     val genres by moviesViewModel.genres.collectAsState(initial = emptyList())
     val genreMoviesMap by moviesViewModel.genreMoviesMap.collectAsState(initial = emptyMap())
     val playlists by playlistsViewModel.playlists.collectAsState(initial = emptyList())
+    val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState()
 
     var searchQuery by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -50,6 +54,10 @@ fun SearchScreen(
 
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) onLogout()
+    }
+
+    LaunchedEffect(Unit) {
+        watchedMoviesViewModel.loadAllWatchedMovies()
     }
 
     Column(
@@ -101,6 +109,8 @@ fun SearchScreen(
                             } else {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     items(movies) { movie ->
+                                        val isWatched = watchedMovies[movie.id] == true
+
                                         Column(
                                             modifier = Modifier
                                                 .width(120.dp)
@@ -130,8 +140,17 @@ fun SearchScreen(
                                                         imageVector = Icons.Filled.Star,
                                                         contentDescription = "Favorita",
                                                         tint = Color.Yellow,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                                if (isWatched) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.CheckCircle,
+                                                        contentDescription = "Vista",
+                                                        tint = Color(0xFF4CAF50),
                                                         modifier = Modifier
                                                             .size(18.dp)
+                                                            .padding(start = 4.dp)
                                                     )
                                                 }
                                             }
@@ -144,7 +163,8 @@ fun SearchScreen(
                 }
             }
         } else {
-            val allMovies = genreMoviesMap.values.flatten()
+            val allMovies = genreMoviesMap.values.flatten().distinctBy { it.id }
+
             val filteredMovies = remember(searchQuery.text, allMovies) {
                 allMovies.filter { movie ->
                     movie.title?.contains(searchQuery.text, ignoreCase = true) == true
@@ -158,6 +178,8 @@ fun SearchScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(filteredMovies) { movie ->
+                    val isWatched = watchedMovies[movie.id] == true
+
                     Column(
                         modifier = Modifier
                             .clickable { onMovieClick(movie.id) }
@@ -187,6 +209,16 @@ fun SearchScreen(
                                     contentDescription = "Favorita",
                                     tint = Color.Yellow,
                                     modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            if (isWatched) {
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = "Vista",
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .padding(start = 4.dp)
                                 )
                             }
                         }

@@ -1,12 +1,14 @@
 package com.example.upelis_mariomarin.ui.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,14 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.data.model.MovieDetails
 import com.example.upelis_mariomarin.data.model.Playlist
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
+import androidx.compose.ui.graphics.Color
+import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,97 +32,145 @@ fun MovieDetailScreen(
     movieDetails: MovieDetails,
     onBack: () -> Unit,
     playlistsViewModel: PlaylistsViewModel = viewModel(),
+    watchedMoviesViewModel: WatchedMoviesViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var isWatched by remember { mutableStateOf(false) }
+    var loading by remember { mutableStateOf(true) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(movieDetails.title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                modifier = Modifier.offset(y = (-50).dp)
-                // ❗ NO padding ni offset
-            )
-        },
-        // ❗ No Insets extra
-        contentWindowInsets = WindowInsets(0),
-        modifier = modifier
-    ) { innerPadding ->
+    LaunchedEffect(movieDetails.id) {
+        loading = true
+        isWatched = watchedMoviesViewModel.checkIfWatched(movieDetails.id)
+        loading = false
+    }
 
-        // 🔧 Usamos solo bottom padding si es necesario
+    val posterUrl = "https://image.tmdb.org/t/p/w500${movieDetails.posterPath}"
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .padding(
-                    top = 80.dp,
-                    bottom = innerPadding.calculateBottomPadding(),
-                    start = 16.dp,
-                    end = 16.dp
-                )
                 .verticalScroll(rememberScrollState())
         ) {
-            val posterUrl = "https://image.tmdb.org/t/p/w500${movieDetails.posterPath}"
+            Box {
+                AsyncImage(
+                    model = posterUrl,
+                    contentDescription = movieDetails.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(450.dp),
+                    contentScale = ContentScale.Crop
+                )
 
-            AsyncImage(
-                model = posterUrl,
-                contentDescription = movieDetails.title,
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.TopStart)
+                        .background(Color.Black.copy(alpha = 0.6f), shape = MaterialTheme.shapes.small)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                }
+            }
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp),
-                contentScale = ContentScale.Crop
-            )
+                    .background(Color(0xFF210F37), shape = MaterialTheme.shapes.large)
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = movieDetails.title,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = movieDetails.overview ?: "Sin descripción",
-                style = MaterialTheme.typography.bodyLarge
-            )
+                if (!loading && isWatched) {
+                    Text(
+                        text = "✅ Ya has visto esta película",
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = movieDetails.overview ?: "Sin descripción disponible",
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
-            Text(
-                text = "Duración: ${movieDetails.runtime ?: "Desconocida"} minutos",
-                style = MaterialTheme.typography.bodyMedium
-            )
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "🎬 Duración: ${movieDetails.runtime ?: "?"} min",
+                    style = MaterialTheme.typography.bodyMedium
+                )
 
-            Text(
-                text = "Géneros: ${movieDetails.genres?.joinToString { it.name } ?: "No disponible"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+                Text(
+                    text = "🎭 Géneros: ${movieDetails.genres?.joinToString { it.name } ?: "Desconocido"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "⭐ Puntuación: ${movieDetails.voteAverage ?: "?"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
 
-            Text(
-                text = "Puntuación: ${movieDetails.voteAverage ?: "No disponible"}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
-            )
+                Text(
+                    text = "📅 Estreno: ${movieDetails.releaseDate ?: "Desconocido"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    OutlinedButton(
+                        onClick = { showDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White,
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Añadir a playlist")
+                    }
+
+                    Button(
+                        onClick = {
+                            watchedMoviesViewModel.toggleWatched(movieDetails.id)
+                            isWatched = !isWatched
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (!isWatched) "No vista" else "Vista")
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
 
-            Button(onClick = { showDialog = true }) {
-                Text("Añadir a playlist")
-            }
+        if (showDialog) {
+            AddToPlaylistDialog(
+                movieId = movieDetails.id,
+                onDismiss = { showDialog = false },
+                playlistsViewModel = playlistsViewModel
+            )
         }
     }
-
-    if (showDialog) {
-        AddToPlaylistDialog(
-            movieId = movieDetails.id,
-            onDismiss = { showDialog = false },
-            playlistsViewModel = playlistsViewModel
-        )
-    }
 }
-
-
 
 @Composable
 fun AddToPlaylistDialog(
@@ -187,54 +238,74 @@ fun AddToPlaylistDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
-                    errorMsg = "Debes seleccionar o crear una playlist"
-                    return@TextButton
-                }
-
-                errorMsg = null
-                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@TextButton
-                val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
-
-                if (newPlaylistName.isNotBlank()) {
-                    val newKey = db.push().key ?: return@TextButton
-                    val newPlaylist = Playlist(
-                        id = newKey,
-                        name = newPlaylistName,
-                        movieIds = listOf(movieId)
-                    )
-                    db.child(newKey).setValue(newPlaylist)
-                        .addOnSuccessListener { onDismiss() }
-                        .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
-                }
-
-                playlists.forEach { playlist ->
-                    val playlistRef = db.child(playlist.id)
-                    val containsMovie = playlist.movieIds.contains(movieId)
-                    val shouldContainMovie = selectedPlaylists.contains(playlist.id)
-
-                    if (shouldContainMovie && !containsMovie) {
-                        val updatedMovieIds = playlist.movieIds.toMutableList()
-                        updatedMovieIds.add(movieId)
-                        playlistRef.child("movieIds").setValue(updatedMovieIds)
-                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                    } else if (!shouldContainMovie && containsMovie) {
-                        val updatedMovieIds = playlist.movieIds.toMutableList()
-                        updatedMovieIds.remove(movieId)
-                        playlistRef.child("movieIds").setValue(updatedMovieIds)
-                            .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                    }
-                }
-
-                onDismiss()
-            }) {
-                Text("Guardar")
-            }
+            // Vacío aquí, botones los ponemos en dismissButton para centrarlos juntos
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF44336),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text("Cancelar")
+                }
+                Button(
+                    onClick = {
+                        if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
+                            errorMsg = "Debes seleccionar o crear una playlist"
+                            return@Button
+                        }
+
+                        errorMsg = null
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+                        val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
+
+                        if (newPlaylistName.isNotBlank()) {
+                            val newKey = db.push().key ?: return@Button
+                            val newPlaylist = Playlist(
+                                id = newKey,
+                                name = newPlaylistName,
+                                movieIds = listOf(movieId)
+                            )
+                            db.child(newKey).setValue(newPlaylist)
+                                .addOnSuccessListener { onDismiss() }
+                                .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
+                        }
+
+                        playlists.forEach { playlist ->
+                            val playlistRef = db.child(playlist.id)
+                            val containsMovie = playlist.movieIds.contains(movieId)
+                            val shouldContainMovie = selectedPlaylists.contains(playlist.id)
+
+                            if (shouldContainMovie && !containsMovie) {
+                                val updatedMovieIds = playlist.movieIds.toMutableList()
+                                updatedMovieIds.add(movieId)
+                                playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                    .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                            } else if (!shouldContainMovie && containsMovie) {
+                                val updatedMovieIds = playlist.movieIds.toMutableList()
+                                updatedMovieIds.remove(movieId)
+                                playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                    .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                            }
+                        }
+
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Guardar")
+                }
             }
         }
     )
