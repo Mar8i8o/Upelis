@@ -2,6 +2,7 @@ package com.example.upelis_mariomarin.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +50,6 @@ fun FavsScreen(
 
     var selectedTabIndex by remember { mutableStateOf(0) }
 
-    // Al iniciar la pantalla cargamos datos necesarios una sola vez
     LaunchedEffect(Unit) {
         playlistsViewModel.loadPlaylists()
         playlistsViewModel.startListeningSharedPlaylists()
@@ -57,9 +57,9 @@ fun FavsScreen(
         moviesViewModel.loadAllMovies()
     }
 
-    Column(modifier = modifier.padding(16.dp)) {
-        val tabs = listOf("Mis playlists", "Compartidas")
+    val tabs = listOf("Mis playlists", "Compartidas")
 
+    Column(modifier = modifier.padding(16.dp)) {
         TabRow(
             selectedTabIndex = selectedTabIndex,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -105,75 +105,77 @@ fun FavsScreen(
         if (playlistsToShow.isEmpty()) {
             Text(if (selectedTabIndex == 0) "No tienes playlists creadas." else "No tienes playlists compartidas.")
         } else {
-            playlistsToShow.forEachIndexed { index, playlist ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = playlist.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable {
-                            navController.navigate("playlist/${playlist.id}")
-                        }
-                    )
-
-                    if (selectedTabIndex == 0) {
-                        IconButton(
-                            onClick = {
-                                selectedPlaylistId = playlist.id
-                                authViewModel.loadFriends()
-                                showShareDialog = true
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Compartir playlist",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                }
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                ) {
-                    val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
-
-                    items(playlistMovies) { movie ->
-                        Column(
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(playlistsToShow) { playlist ->
+                    Column {
+                        Row(
                             modifier = Modifier
-                                .size(100.dp)
-                                .clickable {
-                                    navController.navigate("movie_detail/${movie.id}")
-                                }
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            AsyncImage(
-                                model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
-                                contentDescription = movie.title,
-                                modifier = Modifier.fillMaxSize()
+                            Text(
+                                text = playlist.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.clickable {
+                                    navController.navigate("playlist/${playlist.id}")
+                                }
                             )
-                        }
-                    }
-                }
 
-                // Divider entre playlists, excepto después del último
-                if (index < playlistsToShow.size - 1) {
-                    Divider(
-                        color = Color(0xFF03A9F4).copy(alpha = 0.2f),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                            if (selectedTabIndex == 0) {
+                                IconButton(
+                                    onClick = {
+                                        selectedPlaylistId = playlist.id
+                                        authViewModel.loadFriends()
+                                        showShareDialog = true
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Share,
+                                        contentDescription = "Compartir playlist",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        ) {
+                            val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
+
+                            items(playlistMovies) { movie ->
+                                Column(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clickable {
+                                            navController.navigate("movie_detail/${movie.id}")
+                                        }
+                                ) {
+                                    AsyncImage(
+                                        model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
+                                        contentDescription = movie.title,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+
+                        Divider(
+                            color = Color(0xFF03A9F4).copy(alpha = 0.2f),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
             }
         }
     }
-
-    // Diálogos de crear playlist y compartir (sin cambios, los dejo igual)
 
     if (showCreateDialog) {
         AlertDialog(
