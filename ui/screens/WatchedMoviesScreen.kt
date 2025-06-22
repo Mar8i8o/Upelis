@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,26 +46,57 @@ fun WatchedMoviesScreen(
         playlists.flatMap { it.movieIds }.toSet()
     }
 
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredMovies = if (searchQuery.isBlank()) {
+        watchedMovies
+    } else {
+        watchedMovies.filter {
+            it.title?.contains(searchQuery, ignoreCase = true) == true
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Películas Vistas") },
+                title = {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar películas...") },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Buscar"
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            cursorColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors()
             )
         }
     ) { paddingValues ->
-        if (watchedMovies.isEmpty()) {
+        if (filteredMovies.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No has marcado ninguna película como vista.")
+                Text("No se encontraron películas.")
             }
         } else {
             LazyColumn(
@@ -74,7 +106,7 @@ fun WatchedMoviesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                items(watchedMovies) { movie ->
+                items(filteredMovies) { movie ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
