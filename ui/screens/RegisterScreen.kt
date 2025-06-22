@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.upelis_mariomarin.viewmodel.AuthViewModel
@@ -20,7 +24,7 @@ fun RegisterScreen(
     val errorMessage by authViewModel.errorMessage.collectAsState()
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
 
-    var username by remember { mutableStateOf("") }  // <-- NUEVO
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -90,7 +94,7 @@ fun RegisterScreen(
                     when {
                         username.isBlank() -> localError = "El nombre de usuario no puede estar vacío"
                         password != confirmPassword -> localError = "Las contraseñas no coinciden"
-                        else -> authViewModel.register(email, password, username)  // <-- PASAMOS USERNAME
+                        else -> authViewModel.register(email, password, username)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -105,7 +109,15 @@ fun RegisterScreen(
             onClick = { onNavigateToLogin() },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("¿Ya tienes cuenta? Inicia sesión")
+            val annotatedText = buildAnnotatedString {
+                withStyle(style = SpanStyle(color = Color.White)) {
+                    append("¿Ya tienes cuenta? ")
+                }
+                withStyle(style = SpanStyle(color = Color(0xFFFFD600))) {
+                    append("Inicia sesión")
+                }
+            }
+            Text(annotatedText)
         }
 
         if (localError.isNotEmpty()) {
