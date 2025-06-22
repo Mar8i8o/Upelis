@@ -47,13 +47,16 @@ fun FavsScreen(
     var showShareDialog by remember { mutableStateOf(false) }
     var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
 
-    // Estado para la pestaña seleccionada: 0 = Mis playlists, 1 = Compartidas
     var selectedTabIndex by remember { mutableStateOf(0) }
 
-    // Iniciar listener para playlists compartidas solo una vez
+    // Al iniciar la pantalla cargamos datos necesarios una sola vez
     LaunchedEffect(Unit) {
+        playlistsViewModel.loadPlaylists()
         playlistsViewModel.startListeningSharedPlaylists()
+        authViewModel.loadFriends()
+        moviesViewModel.loadAllMovies()
     }
+
 
     Column(modifier = modifier.padding(16.dp)) {
         val tabs = listOf("Mis playlists", "Compartidas")
@@ -161,6 +164,8 @@ fun FavsScreen(
             }
         }
     }
+
+    // Diálogos de crear playlist y compartir (sin cambios, los dejo igual)
 
     if (showCreateDialog) {
         AlertDialog(
@@ -309,3 +314,4 @@ fun FavsScreen(
         )
     }
 }
+

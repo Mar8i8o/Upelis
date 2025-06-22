@@ -37,6 +37,54 @@ class MoviesViewModel : ViewModel() {
         loadGenresAndMovies()
     }
 
+    fun loadAllMovies() {
+        viewModelScope.launch {
+            try {
+                // 1. Cargar géneros
+                val genreResponse = TmdbApiClient.api.getGenres(apiKey)
+                _genres.value = genreResponse.genres
+
+                // 2. Obtener películas por género en paralelo
+                val deferredMoviesByGenre = genreResponse.genres.map { genre ->
+                    async {
+                        try {
+                            val moviesResponse = TmdbApiClient.api.getMoviesByGenre(apiKey, genre.id)
+                            moviesResponse.results
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            emptyList<Movie>()
+                        }
+                    }
+                }
+
+                val moviesByGenreLists = deferredMoviesByGenre.awaitAll()
+
+                // 3. Obtener las últimas películas
+                val latestResponse = TmdbApiClient.api.getLatestMovies(apiKey)
+                val latestMovies = latestResponse.results
+
+                // 4. Combinar todas las listas y eliminar duplicados por id
+                val allMoviesCombined = (moviesByGenreLists.flatten() + latestMovies)
+                    .distinctBy { it.id }
+
+                // 5. Actualizar el estado
+                _movies.value = allMoviesCombined
+
+                // 6. Actualizar el mapa de películas por género también
+                val genreMovieMap = genreResponse.genres.mapIndexed { index, genre ->
+                    genre.id to moviesByGenreLists.getOrNull(index).orEmpty()
+                }.toMap()
+                _genreMoviesMap.value = genreMovieMap
+
+                _statusMessage.value = "Películas cargadas correctamente"
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _statusMessage.value = "Error al cargar películas: ${e.message}"
+            }
+        }
+    }
+
     private fun fetchNowPlayingMovies() {
         viewModelScope.launch {
             try {

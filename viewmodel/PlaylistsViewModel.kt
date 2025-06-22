@@ -43,7 +43,7 @@ class PlaylistsViewModel : ViewModel() {
         sharedPlaylistsListener = null
     }
 
-    private fun loadPlaylists() {
+    public fun loadPlaylists() {
         val uid = userId ?: return
         val ref = database.child("users").child(uid).child("playlists")
 

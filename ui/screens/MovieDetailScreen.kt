@@ -238,67 +238,74 @@ fun AddToPlaylistDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
-                        errorMsg = "Debes seleccionar o crear una playlist"
-                        return@Button
-                    }
-
-                    errorMsg = null
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
-                    val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
-
-                    if (newPlaylistName.isNotBlank()) {
-                        val newKey = db.push().key ?: return@Button
-                        val newPlaylist = Playlist(
-                            id = newKey,
-                            name = newPlaylistName,
-                            movieIds = listOf(movieId)
-                        )
-                        db.child(newKey).setValue(newPlaylist)
-                            .addOnSuccessListener { onDismiss() }
-                            .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
-                    }
-
-                    playlists.forEach { playlist ->
-                        val playlistRef = db.child(playlist.id)
-                        val containsMovie = playlist.movieIds.contains(movieId)
-                        val shouldContainMovie = selectedPlaylists.contains(playlist.id)
-
-                        if (shouldContainMovie && !containsMovie) {
-                            val updatedMovieIds = playlist.movieIds.toMutableList()
-                            updatedMovieIds.add(movieId)
-                            playlistRef.child("movieIds").setValue(updatedMovieIds)
-                                .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                        } else if (!shouldContainMovie && containsMovie) {
-                            val updatedMovieIds = playlist.movieIds.toMutableList()
-                            updatedMovieIds.remove(movieId)
-                            playlistRef.child("movieIds").setValue(updatedMovieIds)
-                                .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
-                        }
-                    }
-
-                    onDismiss()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4CAF50),
-                    contentColor = Color.White
-                ),
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
-                Text("Guardar")
-            }
+            // Vacío aquí, botones los ponemos en dismissButton para centrarlos juntos
         },
         dismissButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFF44336),
-                    contentColor = Color.White
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Cancelar")
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFF44336),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text("Cancelar")
+                }
+                Button(
+                    onClick = {
+                        if (newPlaylistName.isBlank() && selectedPlaylists.isEmpty()) {
+                            errorMsg = "Debes seleccionar o crear una playlist"
+                            return@Button
+                        }
+
+                        errorMsg = null
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@Button
+                        val db = FirebaseDatabase.getInstance().reference.child("users").child(userId).child("playlists")
+
+                        if (newPlaylistName.isNotBlank()) {
+                            val newKey = db.push().key ?: return@Button
+                            val newPlaylist = Playlist(
+                                id = newKey,
+                                name = newPlaylistName,
+                                movieIds = listOf(movieId)
+                            )
+                            db.child(newKey).setValue(newPlaylist)
+                                .addOnSuccessListener { onDismiss() }
+                                .addOnFailureListener { errorMsg = "Error al guardar: ${it.message}" }
+                        }
+
+                        playlists.forEach { playlist ->
+                            val playlistRef = db.child(playlist.id)
+                            val containsMovie = playlist.movieIds.contains(movieId)
+                            val shouldContainMovie = selectedPlaylists.contains(playlist.id)
+
+                            if (shouldContainMovie && !containsMovie) {
+                                val updatedMovieIds = playlist.movieIds.toMutableList()
+                                updatedMovieIds.add(movieId)
+                                playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                    .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                            } else if (!shouldContainMovie && containsMovie) {
+                                val updatedMovieIds = playlist.movieIds.toMutableList()
+                                updatedMovieIds.remove(movieId)
+                                playlistRef.child("movieIds").setValue(updatedMovieIds)
+                                    .addOnFailureListener { errorMsg = "Error al actualizar: ${it.message}" }
+                            }
+                        }
+
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Guardar")
+                }
             }
         }
     )
