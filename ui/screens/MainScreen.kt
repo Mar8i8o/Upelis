@@ -21,10 +21,10 @@ sealed class BottomNavItem(val title: String, val icon: ImageVector) {
 
 @Composable
 fun MainScreen(
-    navController: NavHostController,                 // <-- Añadido navController
+    navController: NavHostController,
     moviesViewModel: MoviesViewModel,
     authViewModel: AuthViewModel,
-    playlistsViewModel: PlaylistsViewModel,           // <-- Añadido playlistsViewModel
+    playlistsViewModel: PlaylistsViewModel,
     onLogout: () -> Unit,
     onMovieClick: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -73,8 +73,6 @@ fun MainScreen(
                     moviesViewModel = moviesViewModel,
                     onMovieClick = onMovieClick,
                     onGenreClick = { genreId, genreName ->
-                        // Navegar o hacer lo que necesites con el género seleccionado
-                        // Por ejemplo, si tienes navController aquí, puedes navegar:
                         navController.navigate("movies_by_genre/$genreId/$genreName")
                     },
                     modifier = Modifier.padding(innerPadding)
@@ -83,9 +81,9 @@ fun MainScreen(
             }
             is BottomNavItem.Favs -> {
                 FavsScreen(
-                    navController = navController,                // <-- PASAR navController
-                    playlistsViewModel = playlistsViewModel,      // <-- PASAR playlistsViewModel
-                    moviesViewModel = moviesViewModel,            // <-- PASAR moviesViewModel
+                    navController = navController,
+                    playlistsViewModel = playlistsViewModel,
+                    moviesViewModel = moviesViewModel,
                     modifier = Modifier.padding(innerPadding)
                 )
             }

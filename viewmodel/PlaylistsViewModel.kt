@@ -249,7 +249,6 @@ class PlaylistsViewModel : ViewModel() {
 
             val sharedPlaylistRef = database.child("shared_playlists").child(playlistId)
 
-            // Actualizo o creo la playlist compartida incluyendo la lista de usuarios con acceso
             val sharedData = mapOf(
                 "ownerUid" to uid,
                 "name" to playlist.name,

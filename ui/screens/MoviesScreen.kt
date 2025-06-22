@@ -27,7 +27,7 @@ fun MoviesScreen(
     val movies by moviesViewModel.movies.collectAsState(initial = emptyList())
     val isUserAuthenticated by authViewModel.isUserAuthenticated.collectAsState()
 
-    // Si el usuario no está autenticado, ejecutamos onLogout para navegar al login
+    // Si el usuario no está autenticado, ejecuta onLogout para navegar al login
     LaunchedEffect(isUserAuthenticated) {
         if (!isUserAuthenticated) {
             onLogout()
