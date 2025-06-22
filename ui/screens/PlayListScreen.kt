@@ -51,6 +51,8 @@ fun PlayListScreen(
     var newPlaylistName by remember { mutableStateOf("") }
     var showShareDialog by remember { mutableStateOf(false) }
 
+    var movieToRemoveId by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(playlist) {
         playlist?.movieIds?.forEach { id ->
             if (allMovies.none { it.id == id }) {
@@ -66,10 +68,6 @@ fun PlayListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets(0))
-                    .offset(y = (-5).dp)
-                    .padding(vertical = 10.dp),
                 title = { Text(text = playlist?.name ?: "Playlist") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -91,11 +89,9 @@ fun PlayListScreen(
                             Icon(Icons.Default.Share, contentDescription = "Compartir playlist")
                         }
                     }
-                },
-                windowInsets = WindowInsets(0)
+                }
             )
         },
-        contentWindowInsets = WindowInsets(0),
         modifier = modifier
     ) { paddingValues ->
 
@@ -113,14 +109,9 @@ fun PlayListScreen(
             val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
 
             LazyColumn(
-                contentPadding = PaddingValues(
-                    top = paddingValues.calculateTopPadding(),
-                    bottom = paddingValues.calculateBottomPadding(),
-                    start = 16.dp,
-                    end = 16.dp
-                ),
+                contentPadding = paddingValues,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().padding(16.dp)
             ) {
                 items(playlistMovies) { movie ->
                     val details = movieDetailsMap[movie.id]
@@ -128,56 +119,50 @@ fun PlayListScreen(
                     val duration = details?.runtime ?: 0
                     val isWatched = watchedMovies[movie.id] == true
 
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onMovieClick(movie.id) },
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AsyncImage(
-                                model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
-                                contentDescription = movie.title,
-                                modifier = Modifier
-                                    .width(100.dp)
-                                    .height(150.dp)
+                        AsyncImage(
+                            model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
+                            contentDescription = movie.title,
+                            modifier = Modifier
+                                .width(100.dp)
+                                .height(150.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = movie.title ?: "Título desconocido",
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(end = 8.dp)
-                            ) {
-                                Text(
-                                    text = movie.title ?: "Título desconocido",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = "Año: $year • Duración: ${if (duration > 0) "$duration min" else "Desconocida"}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
-                                    )
-                                    if (isWatched) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = "Película vista",
-                                            tint = Color(0xFF4CAF50),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = movie.overview?.take(150)?.plus("...") ?: "Sin descripción.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 4
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Año: $year • Duración: ${if (duration > 0) "$duration min" else "Desconocida"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                            if (isWatched) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Vista",
+                                    tint = Color(0xFF4CAF50),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = movie.overview?.take(150)?.plus("...") ?: "Sin descripción.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        IconButton(onClick = {
+                            movieToRemoveId = movie.id
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar película de playlist")
                         }
                     }
                 }
@@ -185,52 +170,60 @@ fun PlayListScreen(
         }
     }
 
+    // Dialogo eliminar playlist completa
     if (showDeleteDialog && playlist != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Eliminar playlist") },
-            text = {
-                Text("¿Estás seguro que quieres eliminar la playlist \"${playlist.name}\"? Esta acción no se puede deshacer.")
-            },
+            text = { Text("¿Seguro que deseas eliminar \"${playlist.name}\"? Esta acción no se puede deshacer.") },
             confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Button(
-                        onClick = {
-                            playlistsViewModel.deletePlaylist(playlist.id)
-                            showDeleteDialog = false
-                            onBack()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Eliminar")
-                    }
-                    Button(
-                        onClick = { showDeleteDialog = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Cancelar")
-                    }
+                Button(onClick = {
+                    playlistsViewModel.deletePlaylist(playlist.id)
+                    showDeleteDialog = false
+                    onBack()
+                }) {
+                    Text("Eliminar")
                 }
             },
-            dismissButton = {}
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 
+    // Dialogo eliminar película de la playlist
+    if (movieToRemoveId != null && playlist != null) {
+        AlertDialog(
+            onDismissRequest = { movieToRemoveId = null },
+            title = { Text("Eliminar película") },
+            text = { Text("¿Quieres eliminar esta película de la playlist \"${playlist.name}\"?") },
+            confirmButton = {
+                Button(onClick = {
+                    playlistsViewModel.removeMovieFromPlaylist(
+                        playlistId = playlist.id,
+                        movieId = movieToRemoveId!!,
+                        onSuccess = { movieToRemoveId = null },
+                        onError = { movieToRemoveId = null } // Muestra un Toast si quieres
+                    )
+                }) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { movieToRemoveId = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Dialogo editar nombre
     if (showEditDialog && playlist != null) {
         LaunchedEffect(Unit) {
             newPlaylistName = playlist.name
         }
-
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
             title = { Text("Editar nombre de la playlist") },
@@ -239,45 +232,28 @@ fun PlayListScreen(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     label = { Text("Nombre") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    singleLine = true
                 )
             },
             confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Button(
-                        onClick = {
-                            if (newPlaylistName.isNotBlank() && newPlaylistName != playlist.name) {
-                                playlistsViewModel.renamePlaylist(playlist.id, newPlaylistName.trim())
-                            }
-                            showEditDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text("Aceptar")
+                Button(onClick = {
+                    if (newPlaylistName.isNotBlank()) {
+                        playlistsViewModel.renamePlaylist(playlist.id, newPlaylistName.trim())
                     }
-                    Button(
-                        onClick = { showEditDialog = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFF44336),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Cancelar")
-                    }
+                    showEditDialog = false
+                }) {
+                    Text("Aceptar")
                 }
             },
-            dismissButton = {}
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
         )
     }
 
+    // Dialogo compartir
     if (showShareDialog && playlist != null) {
         AlertDialog(
             onDismissRequest = { showShareDialog = false },
@@ -286,20 +262,13 @@ fun PlayListScreen(
                 if (friendsList.isEmpty()) {
                     Text("No tienes amigos para compartir.")
                 } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight(0.5f)
-                            .verticalScroll(rememberScrollState())
-                    ) {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         friendsList.forEach { friend ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        playlistsViewModel.sharePlaylistWithFriend(
-                                            playlistId = playlist.id,
-                                            friendUid = friend.uid
-                                        )
+                                        playlistsViewModel.sharePlaylistWithFriend(playlist.id, friend.uid)
                                         showShareDialog = false
                                     }
                                     .padding(8.dp),
@@ -321,7 +290,7 @@ fun PlayListScreen(
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(friend.username, style = MaterialTheme.typography.bodyMedium)
+                                Text(friend.username)
                             }
                         }
                     }
@@ -336,3 +305,4 @@ fun PlayListScreen(
         )
     }
 }
+

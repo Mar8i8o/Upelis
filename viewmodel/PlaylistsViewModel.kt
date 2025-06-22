@@ -197,6 +197,34 @@ class PlaylistsViewModel : ViewModel() {
         }
     }
 
+    fun removeMovieFromPlaylist(
+        playlistId: String,
+        movieId: Int,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
+        val uid = userId ?: run {
+            onError("Usuario no autenticado")
+            return
+        }
+        val playlistRef = database.child("users").child(uid).child("playlists").child(playlistId)
+
+        playlistRef.get().addOnSuccessListener { snapshot ->
+            val playlist = snapshot.getValue(Playlist::class.java)
+            if (playlist != null) {
+                val updatedMovieIds = playlist.movieIds.filter { it != movieId }
+                playlistRef.child("movieIds").setValue(updatedMovieIds)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { e -> onError("Error al actualizar: ${e.message}") }
+            } else {
+                onError("Playlist no encontrada")
+            }
+        }.addOnFailureListener { e ->
+            onError("Error al leer la playlist: ${e.message}")
+        }
+    }
+
+
     // Compartir playlist con un amigo
     fun sharePlaylistWithFriend(
         playlistId: String,
