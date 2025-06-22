@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -244,7 +245,13 @@ fun UserScreen(
             Button(
                 onClick = { onGoToMoviesScreen() }
             ) {
-                Text("Ir a Películas")
+                Icon(
+                    imageVector = Icons.Filled.DateRange,
+                    contentDescription = "Historial",
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Historial de películas vistas", color = Color.White)
             }
         }
     }

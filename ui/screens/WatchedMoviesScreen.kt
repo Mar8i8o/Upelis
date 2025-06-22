@@ -20,6 +20,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
+import androidx.compose.ui.unit.LayoutDirection
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +61,7 @@ fun WatchedMoviesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.offset(y = (-50).dp),
                 title = {
                     TextField(
                         value = searchQuery,
@@ -89,11 +92,18 @@ fun WatchedMoviesScreen(
             )
         }
     ) { paddingValues ->
+        val adjustedPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() - 40.dp,
+            start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+            end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+            bottom = paddingValues.calculateBottomPadding()
+        )
+
         if (filteredMovies.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(adjustedPadding),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No se encontraron películas.")
@@ -102,7 +112,7 @@ fun WatchedMoviesScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
+                    .padding(adjustedPadding),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -155,3 +165,4 @@ fun WatchedMoviesScreen(
         }
     }
 }
+
