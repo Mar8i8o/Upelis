@@ -19,6 +19,9 @@ import com.example.upelis_mariomarin.MoviesViewModel
 import com.example.upelis_mariomarin.viewmodel.PlaylistsViewModel
 import com.example.upelis_mariomarin.viewmodel.WatchedMoviesViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,12 +40,11 @@ fun MoviesByGenreScreen(
 
     LaunchedEffect(genreId) {
         moviesViewModel.loadMoviesByGenre(genreId)
-        watchedMoviesViewModel.loadAllWatchedMovies()  // Cargar las vistas
+        watchedMoviesViewModel.loadAllWatchedMovies()
     }
 
     val moviesForGenre = genreMoviesMap[genreId] ?: emptyList()
 
-    // IDs favoritos para la estrellita
     val favoriteMovieIds = remember(playlists) {
         playlists.flatMap { it.movieIds }.toSet()
     }
@@ -50,6 +52,7 @@ fun MoviesByGenreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier.offset(y = (-50).dp),
                 title = { Text(genreName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -59,12 +62,19 @@ fun MoviesByGenreScreen(
             )
         }
     ) { paddingValues ->
+        val adjustedPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() - 40.dp,
+            start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+            end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+            bottom = paddingValues.calculateBottomPadding()
+        )
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(16.dp)
+                .padding(adjustedPadding),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
         ) {
             items(moviesForGenre) { movie ->
                 val isWatched = watchedMovies[movie.id] == true
@@ -73,7 +83,8 @@ fun MoviesByGenreScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onMovieClick(movie.id) }
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     AsyncImage(
                         model = "https://image.tmdb.org/t/p/w500${movie.posterPath}",
@@ -81,9 +92,7 @@ fun MoviesByGenreScreen(
                         modifier = Modifier.size(width = 80.dp, height = 120.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -110,7 +119,7 @@ fun MoviesByGenreScreen(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = movie.overview ?: "",
                             style = MaterialTheme.typography.bodySmall,
@@ -122,3 +131,4 @@ fun MoviesByGenreScreen(
         }
     }
 }
+

@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.upelis_mariomarin.MoviesViewModel
@@ -36,7 +37,7 @@ fun PlayListScreen(
     modifier: Modifier = Modifier
 ) {
     val playlists by playlistsViewModel.playlists.collectAsState()
-    val sharedPlaylists by playlistsViewModel.sharedPlaylists.collectAsState() // <-- agregado
+    val sharedPlaylists by playlistsViewModel.sharedPlaylists.collectAsState()
     val allMovies by moviesViewModel.movies.collectAsState()
     val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
     val friendsList by authViewModel.friendsList.collectAsState()
@@ -65,6 +66,9 @@ fun PlayListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets(0))
+                    .offset(y = (-50).dp),
                 title = { Text(text = playlist?.name ?: "Playlist") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -92,11 +96,18 @@ fun PlayListScreen(
         modifier = modifier
     ) { paddingValues ->
 
+        val adjustedPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() - 40.dp,
+            start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+            end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+            bottom = paddingValues.calculateBottomPadding()
+        )
+
         if (playlist == null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(adjustedPadding)
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -106,11 +117,9 @@ fun PlayListScreen(
             val playlistMovies = allMovies.filter { it.id in playlist.movieIds }
 
             LazyColumn(
-                contentPadding = paddingValues,
+                contentPadding = adjustedPadding,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp)
             ) {
                 items(playlistMovies) { movie ->
                     val details = movieDetailsMap[movie.id]

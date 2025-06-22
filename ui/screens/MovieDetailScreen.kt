@@ -148,13 +148,13 @@ fun MovieDetailScreen(
                             isWatched = !isWatched
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
+                            containerColor = if (!isWatched) Color(0xFF9E9E9E) else Color(0xFF2196F3),
                             contentColor = Color.White
                         )
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null)
                         Spacer(Modifier.width(6.dp))
-                        Text(if (isWatched) "No vista" else "Vista")
+                        Text(if (!isWatched) "No vista" else "Vista")
                     }
                 }
             }
