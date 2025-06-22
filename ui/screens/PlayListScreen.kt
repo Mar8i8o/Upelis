@@ -8,11 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,17 +36,18 @@ fun PlayListScreen(
     modifier: Modifier = Modifier
 ) {
     val playlists by playlistsViewModel.playlists.collectAsState()
+    val sharedPlaylists by playlistsViewModel.sharedPlaylists.collectAsState() // <-- agregado
     val allMovies by moviesViewModel.movies.collectAsState()
     val movieDetailsMap by moviesViewModel.movieDetailsMap.collectAsState()
     val friendsList by authViewModel.friendsList.collectAsState()
     val watchedMovies by watchedMoviesViewModel.watchedMovies.collectAsState()
 
-    val playlist = playlists.find { it.id == playlistId }
+    val playlist = playlists.find { it.id == playlistId } ?: sharedPlaylists.find { it.id == playlistId }
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
     var showShareDialog by remember { mutableStateOf(false) }
-
     var movieToRemoveId by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(playlist) {
@@ -111,7 +108,9 @@ fun PlayListScreen(
             LazyColumn(
                 contentPadding = paddingValues,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
                 items(playlistMovies) { movie ->
                     val details = movieDetailsMap[movie.id]
@@ -170,7 +169,6 @@ fun PlayListScreen(
         }
     }
 
-    // Dialogo eliminar playlist completa
     if (showDeleteDialog && playlist != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -193,7 +191,6 @@ fun PlayListScreen(
         )
     }
 
-    // Dialogo eliminar película de la playlist
     if (movieToRemoveId != null && playlist != null) {
         AlertDialog(
             onDismissRequest = { movieToRemoveId = null },
@@ -205,7 +202,7 @@ fun PlayListScreen(
                         playlistId = playlist.id,
                         movieId = movieToRemoveId!!,
                         onSuccess = { movieToRemoveId = null },
-                        onError = { movieToRemoveId = null } // Muestra un Toast si quieres
+                        onError = { movieToRemoveId = null }
                     )
                 }) {
                     Text("Eliminar")
@@ -219,10 +216,11 @@ fun PlayListScreen(
         )
     }
 
-    // Dialogo editar nombre
     if (showEditDialog && playlist != null) {
-        LaunchedEffect(Unit) {
-            newPlaylistName = playlist.name
+        LaunchedEffect(showEditDialog) {
+            if (showEditDialog) {
+                newPlaylistName = playlist.name
+            }
         }
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
@@ -253,7 +251,6 @@ fun PlayListScreen(
         )
     }
 
-    // Dialogo compartir
     if (showShareDialog && playlist != null) {
         AlertDialog(
             onDismissRequest = { showShareDialog = false },
@@ -305,4 +302,3 @@ fun PlayListScreen(
         )
     }
 }
-
