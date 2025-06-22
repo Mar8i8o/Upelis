@@ -11,11 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +31,7 @@ import com.example.upelis_mariomarin.viewmodel.AuthViewModel
 fun UserScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit,
-    onGoToMoviesScreen: () -> Unit // Nuevo parámetro para navegación
+    onGoToMoviesScreen: () -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -79,19 +75,14 @@ fun UserScreen(
             TopAppBar(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets(0))
-                    .offset(y = (-50).dp)
-                    .padding(vertical = 10.dp),
+                    .offset(y = (-40).dp),
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         IconButton(onClick = { onBack() }) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "Volver",
-                                tint = Color.White
-                            )
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Perfil", color = Color.White)
@@ -101,14 +92,26 @@ fun UserScreen(
             )
         }
     ) { paddingValues ->
+
+        // Ajustamos padding para compensar offset en topBar
+        val adjustedPadding = PaddingValues(
+            top = paddingValues.calculateTopPadding() - 40.dp,
+            bottom = paddingValues.calculateBottomPadding(),
+            start = paddingValues.calculateStartPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr),
+            end = paddingValues.calculateEndPadding(layoutDirection = androidx.compose.ui.unit.LayoutDirection.Ltr),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(20.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(adjustedPadding)
+                .padding(horizontal = 20.dp)
+                .navigationBarsPadding(), // Evita cortes abajo
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Foto de perfil
+            Spacer(modifier = Modifier.height(16.dp))
+
             if (!profilePhotoUrl.isNullOrEmpty()) {
                 AsyncImage(
                     model = profilePhotoUrl,
@@ -127,18 +130,12 @@ fun UserScreen(
                         .clickable { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Subir foto",
-                        tint = Color.White,
-                        modifier = Modifier.size(48.dp)
-                    )
+                    Icon(Icons.Default.Person, contentDescription = "Subir foto", tint = Color.White, modifier = Modifier.size(48.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre de usuario
             if (username.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
@@ -149,7 +146,6 @@ fun UserScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Email
             user?.email?.let { email ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Email, contentDescription = null, tint = Color.White)
@@ -239,24 +235,20 @@ fun UserScreen(
                 Text("Agregar amigo", color = Color.White)
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // Botón para navegar a pantalla de películas
             Button(
                 onClick = { onGoToMoviesScreen() }
             ) {
-                Icon(
-                    imageVector = Icons.Filled.DateRange,
-                    contentDescription = "Historial",
-                    tint = Color.White
-                )
+                Icon(Icons.Filled.DateRange, contentDescription = "Historial", tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Historial de películas vistas", color = Color.White)
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
-    // Diálogo para agregar amigo
     if (showAddFriendDialog) {
         val currentUserId = authViewModel.currentUser?.uid
         val filteredUsers = allUsersList.filter { user ->
