@@ -258,7 +258,13 @@ fun UserScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         label = { Text("Buscar usuario") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.White,   // Borde cuando está seleccionado
+                            unfocusedBorderColor = Color.Gray,         // Borde cuando no está seleccionado
+                            focusedLabelColor = Color.White,     // Color del label al enfocar
+                            cursorColor = Color.White            // Color del cursor
+                        )
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
